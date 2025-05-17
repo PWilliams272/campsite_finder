@@ -143,8 +143,6 @@ def load_config(key='config.json'):
     Returns:
         dict: Configuration dictionary.
     """
-    print(get_mode())
-    print(get_local_data_dir())
     return load_json(key)
 
 def save_config(data, key='config.json'):
