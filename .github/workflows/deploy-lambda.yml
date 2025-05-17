@@ -11,18 +11,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
+      - name: Zip Lambda function code
         run: |
-          pip install -r requirements.txt -t package/
-          cp -r campsite_finder package/
-          cd package
-          zip -r ../lambda.zip .
-          cd ..
+          zip -r lambda.zip campsite_finder
 
       - name: Deploy to Lambda
         uses: appleboy/lambda-action@v0.1.8
