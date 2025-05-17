@@ -3,7 +3,7 @@ name: Deploy Lambda
 on:
   push:
     branches:
-      - main
+      - prod
   workflow_dispatch:
 
 concurrency:
