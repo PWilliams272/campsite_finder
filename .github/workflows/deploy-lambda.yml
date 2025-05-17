@@ -1,25 +1,58 @@
-name: Deploy to AWS Lambda
+name: Deploy Lambda
 
 on:
   push:
-    branches: [prod]
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: lambda-deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Zip Lambda function code only
-        run: |
-          zip -r lambda.zip campsite_finder
-
-      - name: Deploy to Lambda
-        uses: appleboy/lambda-action@v0.1.8
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws_region: ${{ secrets.AWS_REGION || 'us-east-2' }}
-          function_name: campsite_finder
-          zip_file: lambda.zip
+          python-version: '3.11'
+
+      - name: Install AWS CLI
+        run: |
+          pip install --upgrade awscli
+
+      - name: Zip Lambda function
+        run: |
+          zip -r function.zip campsite_finder
+
+      - name: Deploy to AWS Lambda with retries
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_DEFAULT_REGION: us-east-2
+          LAMBDA_FUNCTION_NAME: campsite_finder
+        run: |
+          for i in {1..5}; do
+            set +e
+            aws lambda update-function-code \
+              --function-name "$LAMBDA_FUNCTION_NAME" \
+              --zip-file fileb://function.zip \
+              --publish
+            STATUS=$?
+            set -e
+            if [ $STATUS -eq 0 ]; then
+              echo "Deployment successful"
+              exit 0
+            else
+              echo "Resource conflict or other error, retrying in 30 seconds... (Attempt $i/5)"
+              sleep 30
+            fi
+          done
+          echo "Failed to deploy after retries"
+          exit 1
