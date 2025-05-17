@@ -1,5 +1,5 @@
 import os
-from .settings import MODE, LOCAL_DATA_DIR
+from .settings import *
 
 def format_email(new_full_avail, new_partial_avail, params):
     """
@@ -83,9 +83,9 @@ def send_email(subject, html_body, recipients, sender="pwilliams272@gmail.com"):
         recipients (list): List of recipient email addresses.
         sender (str): Sender email address (default: "pwilliams272@gmail.com").
     """
-    if MODE == 'local':
-        os.makedirs(LOCAL_DATA_DIR, exist_ok=True)
-        fname = os.path.join(LOCAL_DATA_DIR, "email_test.html")
+    if get_mode() == 'local':
+        os.makedirs(get_local_data_dir(), exist_ok=True)
+        fname = os.path.join(get_local_data_dir(), "email_test.html")
         with open(fname, "w") as f:
             f.write(f"<h2>{subject}</h2>\n{html_body}")
         print(f"[LOCAL MODE] Email would be sent to: {recipients}\nSaved HTML to: {fname}")
