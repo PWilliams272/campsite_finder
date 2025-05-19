@@ -11,7 +11,7 @@ CONFIG_PATH = os.path.join(DATA_DIR, 'config.json')
 
 @campsite_bp.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('campsite_finder_index.html')
 
 @campsite_bp.route('/api/parks')
 def api_parks():
