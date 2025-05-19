@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Admin - Configurations{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2>Current Configurations</h2>
+    {% if configs %}
+        <div class="accordion" id="configAccordion">
+            {% for uuid, conf in configs.items() %}
+            <div class="accordion-item mb-2">
+                <h2 class="accordion-header" id="heading-{{ uuid }}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ uuid }}" aria-expanded="false" aria-controls="collapse-{{ uuid }}">
+                        {{ conf.name if conf.name else uuid }}
+                        &nbsp;
+                        <input type="checkbox"
+                            class="form-check-input ms-2"
+                            style="transform: scale(1.25);"
+                            {% if conf.active %}checked{% endif %}
+                            onchange="toggleActive('{{ uuid }}', this.checked)">
+                        <span style="font-size:0.9em; color: #888;">Active</span>
+                    </button>
+                </h2>
+                <div id="collapse-{{ uuid }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ uuid }}" data-bs-parent="#configAccordion">
+                    <div class="accordion-body">
+                        <dl class="row">
+                            <dt class="col-sm-3">Campgrounds</dt>
+                            <dd class="col-sm-9">
+                                <ul>
+                                    {% for cg_name, cg_id in conf.campgrounds.items() %}
+                                    <li><strong>{{ cg_name }}</strong> (ID: {{ cg_id }})</li>
+                                    {% endfor %}
+                                </ul>
+                            </dd>
+                            <dt class="col-sm-3">Start Date</dt>
+                            <dd class="col-sm-9">{{ conf.start_date }}</dd>
+                            <dt class="col-sm-3">End Date</dt>
+                            <dd class="col-sm-9">{{ conf.end_date if conf.end_date else '—' }}</dd>
+                            <dt class="col-sm-3">Notification Emails</dt>
+                            <dd class="col-sm-9">
+                                <ul>
+                                {% for email in conf.email_to %}
+                                    <li>{{ email }}</li>
+                                {% endfor %}
+                                </ul>
+                            </dd>
+                            <dt class="col-sm-3">Partial?</dt>
+                            <dd class="col-sm-9">{{ conf.Partial }}</dd>
+                            <dt class="col-sm-3">Tents Permitted?</dt>
+                            <dd class="col-sm-9">{{ conf.TentsPermitted }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-warning">No configurations found.</div>
+    {% endif %}
+</div>
+<script>
+function toggleActive(uuid, checked) {
+    fetch(`/toggle_active/${uuid}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({active: checked})
+    }).then(r => {
+        if (!r.ok) alert('Failed to update status!');
+    });
+}
+</script>
+{% endblock %}
