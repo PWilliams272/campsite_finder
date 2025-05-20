@@ -76,6 +76,17 @@
         </div>
     </div>
 </div>
+
+<!-- Inject API endpoint URLs dynamically -->
+<script>
+    const API_ENDPOINTS = {
+        parks: "{{ url_for('campsite_finder.api_parks') }}",
+        campgrounds: "{{ url_for('campsite_finder.api_campgrounds') }}",
+        addConfig: "{{ url_for('campsite_finder.add_config_route') }}"
+        // add other endpoints as needed
+    };
+</script>
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker@2.0.11/dist/litepicker.css"/>
 <script src="https://cdn.jsdelivr.net/npm/litepicker@2.0.11/dist/litepicker.js"></script>
 <script>
@@ -123,7 +134,7 @@ parkSearch.addEventListener('input', function() {
         return;
     }
     parkSearchTimeout = setTimeout(() => {
-        fetch(`/api/parks?q=${encodeURIComponent(query)}`)
+        fetch(`${API_ENDPOINTS.parks}?q=${encodeURIComponent(query)}`)
             .then(r => r.json())
             .then(data => {
                 const fuzzySorted = data.slice().sort((a, b) => fuzzyScore(b, query) - fuzzyScore(a, query));
@@ -278,7 +289,7 @@ function fetchCampgroundsForSelectedParks() {
         campgroundResultsCache = {};
         return;
     }
-    fetch(`/api/campgrounds?` + parkIds.map(id => `park_ids[]=${encodeURIComponent(id)}`).join('&'))
+    fetch(`${API_ENDPOINTS.campgrounds}?` + parkIds.map(id => `park_ids[]=${encodeURIComponent(id)}`).join('&'))
         .then(r => r.json())
         .then(data => {
             campgroundResultsCache = data;
@@ -504,7 +515,7 @@ document.getElementById('campsite-form').addEventListener('submit', function(e) 
         TentsPermitted: document.getElementById('tents-permitted').checked
     };
 
-    fetch('/add_config', {
+    fetch(API_ENDPOINTS.addConfig, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({key, value: configValue})
