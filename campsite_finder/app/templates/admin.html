@@ -59,7 +59,7 @@
 </div>
 <script>
 function toggleActive(uuid, checked) {
-    fetch(`/toggle_active/${uuid}`, {
+    fetch("{{ url_for('campsite_finder.toggle_active', uuid='__UUID__') }}".replace('__UUID__', uuid), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
