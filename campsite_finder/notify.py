@@ -28,7 +28,7 @@ def format_email(new_full_avail, new_partial_avail, params):
     campgrounds_full = [k for k, v in new_full_avail.items() if v]
     n_full_sites = sum(len(v) for v in new_full_avail.values())
 
-    include_partial = params.get("Partial", False)
+    include_partial = params.get("partial", False)
     if include_partial:
         campgrounds_partial = [k for k, v in new_partial_avail.items() if v]
         n_partial_sites = sum(len(v) for v in new_partial_avail.values())
