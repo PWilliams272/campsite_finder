@@ -592,7 +592,8 @@ document.getElementById('campsite-form').addEventListener('submit', function(e) 
         campgrounds: campgroundsDict,
         email_to: emailList,
         partial: document.getElementById('allow-partial').checked,
-        tents_permitted: document.getElementById('tents-permitted').checked
+        tents_permitted: document.getElementById('tents-permitted').checked,
+        active: true // Always set new/updated configs as active
     };
     fetch(endpoint, {
         method: 'POST',
