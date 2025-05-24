@@ -38,7 +38,6 @@ jobs:
           AWS_DEFAULT_REGION: us-east-2
           LAMBDA_FUNCTION_NAME: campsite_finder
           CAMPSITE_FINDER_DOMAIN: ${{ secrets.CAMPSITE_FINDER_DOMAIN }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
           for i in {1..5}; do
             set +e
