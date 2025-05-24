@@ -2,6 +2,7 @@ import pandas as pd
 from .data_io import load_config, load_pickle, save_pickle
 from .availability import check_available, check_for_changes
 from .notify import format_email, send_email
+import os
 
 def process_config_key(key, params):
     """
@@ -19,6 +20,11 @@ def process_config_key(key, params):
         previous_availability = pd.DataFrame(columns=current_availability.columns)
     new_full_avail, new_partial_avail = check_for_changes(current_availability, previous_availability)
     save_pickle(current_availability, f"{key}.pkl")
+    # Add edit_url to params for email if not present
+    if 'edit_url' not in params:
+        # Try to build the edit URL (assume Flask app runs at root)
+        params = dict(params)  # copy to avoid mutating original
+        params['edit_url'] = f"https://{os.environ.get('CAMPSITE_FINDER_DOMAIN', 'localhost')}/edit_config/{key}"
     body = format_email(new_full_avail, new_partial_avail, params)
     if body:
         send_email("New Campsites Available!", body, email_to)

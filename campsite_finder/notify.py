@@ -69,6 +69,11 @@ def format_email(new_full_avail, new_partial_avail, params):
                 email += f"{campground_name}: {site_str}<br>"
         email += "<br>"
 
+    # Add edit link if available
+    edit_url = params.get('edit_url')
+    if edit_url:
+        email += f'<a href="{edit_url}" style="display:inline-block;margin-top:10px;padding:8px 16px;background:#007bff;color:#fff;text-decoration:none;border-radius:4px;">Edit or Pause This Alert</a><br>'
+
     return email
 
 def send_email(subject, html_body, recipients, sender="pwilliams272@gmail.com"):
@@ -98,3 +103,24 @@ def send_email(subject, html_body, recipients, sender="pwilliams272@gmail.com"):
             Destination={"ToAddresses": recipients},
             Message=message
         )
+
+def format_welcome_email(params):
+    """
+    Create an HTML welcome email for a new configuration.
+
+    Args:
+        params (dict): Must include 'name' and 'edit_url'.
+
+    Returns:
+        str: HTML-formatted welcome email body.
+    """
+    name = params.get('name', 'Campsite Finder User')
+    edit_url = params.get('edit_url')
+    email = f"""
+    <p>Hi {name},</p>
+    <p>Your campsite alert has been successfully processed. We'll notify you as soon as new sites become available that match your criteria.</p>
+    <p>If you ever want to edit, pause, or delete this alert, just use the link below:</p>
+    <a href=\"{edit_url}\" style=\"display:inline-block;margin-top:10px;padding:8px 16px;background:#007bff;color:#fff;text-decoration:none;border-radius:4px;\">Edit or Pause This Alert</a><br>
+    <p>Thank you for using Campsite Finder!</p>
+    """
+    return email

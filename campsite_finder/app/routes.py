@@ -67,12 +67,24 @@ def toggle_setup():
 
 @campsite_bp.route('/add_config', methods=['POST'])
 def add_config_route():
+    from campsite_finder.notify import format_welcome_email, send_email
     data = request.json
     key = data.get('key')
     value = data.get('value')
     if not key or not value:
         return jsonify({"error": "Missing key or value"}), 400
     add_config(key, value)
+    # Send welcome email if possible
+    email_to = value.get('email_to')
+    if email_to:
+        # Build edit_url for this config
+        domain = os.environ.get('CAMPSITE_FINDER_DOMAIN', 'localhost')
+        edit_url = f"https://{domain}/edit_config/{key}"
+        params = dict(value)
+        params['edit_url'] = edit_url
+        subject = "Your Campsite Alert is Set Up!"
+        html_body = format_welcome_email(params)
+        send_email(subject, html_body, email_to)
     return jsonify({"success": True})
 
 @campsite_bp.route("/admin")
