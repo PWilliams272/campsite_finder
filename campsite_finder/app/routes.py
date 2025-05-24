@@ -89,3 +89,48 @@ def toggle_active(uuid):
     configs[uuid]['active'] = is_active
     save_config(configs)
     return '', 204
+
+@campsite_bp.route('/edit_config/<uuid>', methods=['GET', 'POST'])
+def edit_config(uuid):
+    from campsite_finder.config_utils import load_config, save_config
+    configs = load_config()
+    if uuid not in configs:
+        return "Config not found", 404
+    if request.method == 'POST':
+        data = request.json
+        # Expecting: {key, value: {...}, national_parks: {...}}
+        value = data.get('value', {})
+        config = configs[uuid]
+        config['tents_permitted'] = value.get('tents_permitted', config.get('tents_permitted', False))
+        config['partial'] = value.get('partial', config.get('partial', False))
+        config['national_parks'] = value.get('national_parks', config.get('national_parks', {}))
+        config['campgrounds'] = value.get('campgrounds', config.get('campgrounds', {}))
+        # Ensure all IDs are strings in national_parks and campgrounds
+        config['national_parks'] = {k: str(v) for k, v in config['national_parks'].items()}
+        config['campgrounds'] = {k: str(v) for k, v in config['campgrounds'].items()}
+        config['name'] = value.get('name', config.get('name'))
+        config['start_date'] = value.get('start_date', config.get('start_date'))
+        config['end_date'] = value.get('end_date', config.get('end_date'))
+        config['email_to'] = value.get('email_to', config.get('email_to', []))
+        save_config(configs)
+        return jsonify({'status': 'success'}), 200
+    # GET: render form
+    config = configs[uuid]
+    config_for_form = dict(config)
+    config_for_form['campgrounds'] = list(config.get('campgrounds', {}).keys())
+    return render_template(
+        'campsite_finder_index.html',
+        edit_mode=True,
+        config=config_for_form,
+        uuid=uuid
+    )
+
+@campsite_bp.route('/delete_config/<uuid>', methods=['POST'])
+def delete_config(uuid):
+    from campsite_finder.config_utils import load_config, save_config
+    configs = load_config()
+    if uuid in configs:
+        del configs[uuid]
+        save_config(configs)
+        return '', 204
+    return "Config not found", 404

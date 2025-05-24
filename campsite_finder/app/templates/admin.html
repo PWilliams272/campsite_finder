@@ -8,21 +8,39 @@
         <div class="accordion" id="configAccordion">
             {% for uuid, conf in configs.items() %}
             <div class="accordion-item mb-2">
-                <h2 class="accordion-header" id="heading-{{ uuid }}">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ uuid }}" aria-expanded="false" aria-controls="collapse-{{ uuid }}">
-                        {{ conf.name if conf.name else uuid }}
-                        &nbsp;
-                        <input type="checkbox"
-                            class="form-check-input ms-2"
-                            style="transform: scale(1.25);"
-                            {% if conf.active %}checked{% endif %}
-                            onchange="toggleActive('{{ uuid }}', this.checked)">
-                        <span style="font-size:0.9em; color: #888;">Active</span>
-                    </button>
+                <h2 class="accordion-header d-flex align-items-center justify-content-between" id="heading-{{ uuid }}">
+                    <div class="d-flex flex-grow-1 align-items-center">
+                        <div class="d-flex align-items-center me-3" style="position: relative;">
+                            <input type="checkbox"
+                                class="form-check-input ms-2"
+                                style="transform: scale(0.6); position: relative; top: -3px;"
+                                {% if conf.active %}checked{% endif %}
+                                onchange="toggleActive('{{ uuid }}', this.checked)"
+                            >
+                            <span style="font-size:0.5em; color: #888;" class="ms-1">Active</span>
+                        </div>
+                        <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ uuid }}" aria-expanded="false" aria-controls="collapse-{{ uuid }}">
+                            {{ conf.name if conf.name else uuid }}
+                        </button>
+                        <a href="{{ url_for('campsite_finder.edit_config', uuid=uuid) }}" class="btn btn-sm btn-outline-secondary ms-3 me-2" onclick="event.stopPropagation();">Edit</a>
+                        <button class="btn btn-sm btn-outline-danger me-2" onclick="deleteConfig('{{ uuid }}'); event.stopPropagation();">Delete</button>
+                    </div>
                 </h2>
                 <div id="collapse-{{ uuid }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ uuid }}" data-bs-parent="#configAccordion">
                     <div class="accordion-body">
                         <dl class="row">
+                            <dt class="col-sm-3">National Parks</dt>
+                            <dd class="col-sm-9">
+                                <ul>
+                                {% if conf.national_parks %}
+                                    {% for park in conf.national_parks %}
+                                        <li>{{ park }}</li>
+                                    {% endfor %}
+                                {% else %}
+                                    <li><em>None</em></li>
+                                {% endif %}
+                                </ul>
+                            </dd>
                             <dt class="col-sm-3">Campgrounds</dt>
                             <dd class="col-sm-9">
                                 <ul>
@@ -44,9 +62,9 @@
                                 </ul>
                             </dd>
                             <dt class="col-sm-3">Partial?</dt>
-                            <dd class="col-sm-9">{{ conf.Partial }}</dd>
+                            <dd class="col-sm-9">{{ conf.partial }}</dd>
                             <dt class="col-sm-3">Tents Permitted?</dt>
-                            <dd class="col-sm-9">{{ conf.TentsPermitted }}</dd>
+                            <dd class="col-sm-9">{{ conf.tents_permitted }}</dd>
                         </dl>
                     </div>
                 </div>
@@ -68,6 +86,22 @@ function toggleActive(uuid, checked) {
         body: JSON.stringify({active: checked})
     }).then(r => {
         if (!r.ok) alert('Failed to update status!');
+    });
+}
+
+function deleteConfig(uuid) {
+    fetch("{{ url_for('campsite_finder.delete_config', uuid='__UUID__') }}".replace('__UUID__', uuid), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    }).then(r => {
+        if (r.ok) {
+            location.reload();
+        } else {
+            alert('Failed to delete configuration!');
+        }
     });
 }
 </script>
