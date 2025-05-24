@@ -12,6 +12,8 @@ def process_config_key(key, params):
         key (str): The config key, used for naming the pickle file.
         params (dict): Configuration parameters for this check, including email recipients and search criteria.
     """
+    if params.get('active', False) is False:
+        return  # Skip processing if this config is not active
     email_to = params.get('email_to')
     current_availability = check_available(params)
     try:

@@ -19,9 +19,9 @@ def check_available(params):
     for campground_name, campground_id in campgrounds.items():
         df = get_campground_availability(campground_id, start_date, end_date)
         df = df[df['CampsiteReservable']]
-        if params.get('TentsPermitted', True):
-            df = df[df['TentsPermitted'] == True]
-        if params.get('Partial'):
+        if params.get('tents_permitted', True):
+            df = df[df['tents_permitted'] == True]
+        if params.get('partial'):
             df = df[df['Available'].isin(['Available', 'Partial'])]
         else:
             df = df[df['Available'] == 'Available']
