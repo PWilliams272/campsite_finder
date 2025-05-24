@@ -95,6 +95,7 @@
     const PREPOP_CONFIG = {{ config|tojson|safe }};
     const UPDATE_ENDPOINT = "{{ url_for('campsite_finder.edit_config', uuid=uuid) }}";
     const DELETE_ENDPOINT = "{{ url_for('campsite_finder.delete_config', uuid=uuid) }}";
+    const MAIN_PAGE_URL = "{{ url_for('campsite_finder.index') }}";
     {% endif %}
 </script>
 
@@ -725,8 +726,8 @@ if (typeof EDIT_MODE !== 'undefined' && EDIT_MODE) {
                 if (response.ok) {
                     document.getElementById('submit-status').innerHTML = "<div class='alert alert-success'>Configuration deleted.</div>";
                     document.getElementById('campsite-form').querySelectorAll('input,button,textarea,select').forEach(el => el.disabled = true);
-                    // Optionally, redirect after a short delay:
-                    setTimeout(() => { window.location.href = '/admin'; }, 1200);
+                    // Redirect to main page after a short delay:
+                    setTimeout(() => { window.location.href = MAIN_PAGE_URL; }, 1200);
                 } else {
                     document.getElementById('submit-status').innerHTML = "<div class='alert alert-danger'>Error deleting configuration.</div>";
                 }
