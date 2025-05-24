@@ -60,11 +60,11 @@
                                 value="{% if edit_mode and config.start_date and config.end_date %}{{ config.start_date }} to {{ config.end_date }}{% endif %}">
                         </div>
                         <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="allow-partial" name="allow_partial" {% if edit_mode and config.Partial %}checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="allow-partial" name="allow_partial" {% if edit_mode and config.partial %}checked{% endif %}>
                             <label class="form-check-label" for="allow-partial">Notify of sites available for only part of requested date range</label>
                         </div>
                         <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="tents-permitted" name="tents_permitted" {% if edit_mode and config.TentsPermitted %}checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="tents-permitted" name="tents_permitted" {% if edit_mode and config.tents_permitted %}checked{% endif %}>
                             <label class="form-check-label" for="tents-permitted">Only notify of sites where tents are permitted</label>
                         </div>
                         <div class="d-grid">
@@ -99,6 +99,7 @@
     {% endif %}
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker@2.0.11/dist/litepicker.css"/>
 <script src="https://cdn.jsdelivr.net/npm/litepicker@2.0.11/dist/litepicker.js"></script>
 <script>
@@ -501,6 +502,19 @@ const picker = new Litepicker({
         return i + ' ' + label + (i > 1 ? 's' : '');
     }
 });
+window.picker = picker; // Ensure global reference for prepopulation
+
+// --- Date range prepopulation: run after picker is created ---
+if (typeof EDIT_MODE !== 'undefined' && EDIT_MODE && typeof PREPOP_CONFIG !== 'undefined') {
+    if (PREPOP_CONFIG.start_date && PREPOP_CONFIG.end_date) {
+        console.log('[DEBUG][picker-init] Prepopulating date range:', PREPOP_CONFIG.start_date, PREPOP_CONFIG.end_date);
+        picker.setDateRange(PREPOP_CONFIG.start_date, PREPOP_CONFIG.end_date);
+        const start = dayjs(PREPOP_CONFIG.start_date);
+        const end = dayjs(PREPOP_CONFIG.end_date);
+        updateDateRangeInput(start, end);
+        console.log('[DEBUG][picker-init] dateRangeInput.value after update:', dateRangeInput.value);
+    }
+}
 function updateDateRangeInput(start, end) {
     startDate = start ? start.format('YYYY-MM-DD') : '';
     endDate = end ? end.format('YYYY-MM-DD') : '';
@@ -703,11 +717,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         // 4. Prepopulate date range
         if (PREPOP_CONFIG.start_date && PREPOP_CONFIG.end_date) {
-            if (window.picker) {
-                window.picker.setDateRange(PREPOP_CONFIG.start_date, PREPOP_CONFIG.end_date);
-            }
-            // Always set the input value directly as well
-            document.getElementById('date-range').value = PREPOP_CONFIG.start_date + ' to ' + PREPOP_CONFIG.end_date;
+            console.log('[DEBUG] Attempting to prepopulate date range:', PREPOP_CONFIG.start_date, PREPOP_CONFIG.end_date);
+            setTimeout(() => {
+                if (window.picker) {
+                    console.log('[DEBUG] window.picker exists, calling setDateRange');
+                    window.picker.setDateRange(PREPOP_CONFIG.start_date, PREPOP_CONFIG.end_date);
+                    // Use dayjs to ensure correct format and update input
+                    const start = dayjs(PREPOP_CONFIG.start_date);
+                    const end = dayjs(PREPOP_CONFIG.end_date);
+                    console.log('[DEBUG] Calling updateDateRangeInput with:', start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
+                    updateDateRangeInput(start, end);
+                    console.log('[DEBUG] dateRangeInput.value after update:', dateRangeInput.value);
+                } else {
+                    console.log('[DEBUG] window.picker does NOT exist at prepopulation time');
+                }
+            }, 200); // Delay to ensure picker is initialized
+        } else {
+            console.log('[DEBUG] PREPOP_CONFIG.start_date or end_date missing:', PREPOP_CONFIG.start_date, PREPOP_CONFIG.end_date);
         }
     }
 });
