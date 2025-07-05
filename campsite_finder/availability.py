@@ -46,6 +46,6 @@ def check_for_changes(data, old_data):
     newly_partial = {}
     for campground_name, new in data.groupby('CampgroundName'):
         prev = old_data[old_data['CampgroundName'] == campground_name]
-        newly_available[campground_name] = sorted(list(set(new[new['Available'] == 'Available']['CampsiteID']) - set(prev[prev['Available'] == 'Available']['CampsiteID'])))
-        newly_partial[campground_name] = sorted(list(set(new[new['Available'] == 'Partial']['CampsiteID']) - set(prev[prev['Available'] == 'Partial']['CampsiteID'])))
+        newly_available[campground_name] = sorted(list(set(new[new['Available'] == 'Available']['CampsiteName']) - set(prev[prev['Available'] == 'Available']['CampsiteName'])))
+        newly_partial[campground_name] = sorted(list(set(new[new['Available'] == 'Partial']['CampsiteName']) - set(prev[prev['Available'] == 'Partial']['CampsiteName'])))
     return newly_available, newly_partial
