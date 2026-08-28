@@ -89,12 +89,15 @@ def load_pickle(key, bucket=None):
         bucket (str): S3 bucket name (default: 'campsite-finder-data').
 
     Returns:
-        object: Loaded Python object, or None if file not found.
+        object: Loaded Python object.
+
+    Raises:
+        FileNotFoundError: If the key doesn't exist, in either mode.
     """
     if get_mode() == 'local':
         path = _get_local_path(key)
         if not os.path.exists(path):
-            return None
+            raise FileNotFoundError(f"Local pickle '{path}' not found")
         with open(path, 'rb') as f:
             return pickle.load(f)
     else:
