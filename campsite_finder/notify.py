@@ -46,18 +46,22 @@ def _wrap_email(title, body_html, footer_html=""):
 
 _RESERVATION_URL = "https://www.recreation.gov/camping/campsites/{}"
 
-def _site_links(sites, campground_name, site_ids):
+def _site_links(sites, campground_name, site_ids, date_range_str):
     """Each site name, linked to its recreation.gov reservation page when a
-    CampsiteID is available for it (see availability.check_for_changes)."""
+    CampsiteID is available for it (see availability.check_for_changes), with
+    the alert's date range alongside — recreation.gov doesn't support a
+    deep link that pre-fills dates, so this saves the recipient from having
+    to re-pick them once they land on the page."""
     ids = (site_ids or {}).get(campground_name, {})
     out = []
     for site in sites:
         site_id = ids.get(site)
         if site_id:
             url = _RESERVATION_URL.format(site_id)
-            out.append(f'<a href="{url}" style="color:{_PRIMARY};">{site}</a>')
+            label = f'<a href="{url}" style="color:{_PRIMARY};">{site}</a>'
         else:
-            out.append(site)
+            label = site
+        out.append(f'{label} <span style="color:{_TEXT_2};font-size:12px;">({date_range_str})</span>')
     return out
 
 def format_email(new_full_avail, new_partial_avail, params, site_ids=None):
@@ -111,8 +115,10 @@ def format_email(new_full_avail, new_partial_avail, params, site_ids=None):
     end_date_str = end_date.strftime("%Y-%m-%d")
     if end_date == start_date + timedelta(days=1):
         intro = f"There are {n_sites} new campsites available on {start_date_str} in {campground_str}!"
+        date_range_str = start_date.strftime("%b %-d")
     else:
         intro = f"There are {n_sites} new campsites available from {start_date_str} to {end_date_str} in {campground_str}!"
+        date_range_str = f"{start_date.strftime('%b %-d')} → {end_date.strftime('%b %-d')}"
 
     body = f'<p style="margin:0 0 16px 0;">{intro}</p>'
 
@@ -120,7 +126,7 @@ def format_email(new_full_avail, new_partial_avail, params, site_ids=None):
         body += f'<p style="margin:0 0 4px 0;font-weight:700;color:{_TEXT};">Fully available sites</p>'
         for campground_name, sites in new_full_avail.items():
             if sites:
-                site_str = ', '.join(_site_links(sites, campground_name, site_ids))
+                site_str = ', '.join(_site_links(sites, campground_name, site_ids, date_range_str))
                 body += f'<p style="margin:0 0 4px 0;color:{_TEXT_2};"><strong style="color:{_TEXT};">{campground_name}:</strong> {site_str}</p>'
         body += '<div style="height:12px;"></div>'
 
@@ -128,7 +134,7 @@ def format_email(new_full_avail, new_partial_avail, params, site_ids=None):
         body += f'<p style="margin:0 0 4px 0;font-weight:700;color:{_TEXT};">Partially available sites (not all requested nights)</p>'
         for campground_name, sites in new_partial_avail.items():
             if sites:
-                site_str = ', '.join(_site_links(sites, campground_name, site_ids))
+                site_str = ', '.join(_site_links(sites, campground_name, site_ids, date_range_str))
                 body += f'<p style="margin:0 0 4px 0;color:{_TEXT_2};"><strong style="color:{_TEXT};">{campground_name}:</strong> {site_str}</p>'
         body += '<div style="height:12px;"></div>'
 
