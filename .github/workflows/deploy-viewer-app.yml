@@ -10,11 +10,13 @@ name: Deploy Viewer App to EC2
 # same host pattern.
 #
 # Path-filtered so this and deploy-lambda.yml have independent deploy streams
-# — a Lambda-only change (campsite_finder/main.py, availability.py, notify.py,
+# — a Lambda-only change (campsite_finder/main.py, availability.py,
 # recreationgov.py, data_io.py) doesn't restart this service, and a web-only
 # change (routes.py, templates, static) doesn't redeploy the Lambda. Modules
-# shared by both (settings.py, config_utils.py, __init__.py) deliberately
-# appear in both workflows' filters.
+# shared by both (settings.py, config_utils.py, notify.py, __init__.py)
+# deliberately appear in both workflows' filters — notify.py in particular is
+# called directly from app/routes.py's add_config_route, not just from the
+# Lambda's main.py, so it belongs in both.
 #
 # DEPLOYS FROM `prod` ONLY, matching this repo's deploy-lambda.yml.
 on:
@@ -27,6 +29,8 @@ on:
       - 'campsite_finder/config_utils.py'
       - 'campsite_finder/data_io.py'
       - 'campsite_finder/recreationgov.py'
+      - 'campsite_finder/notify.py'
+      - 'campsite_finder/access_tokens.py'
       - 'campsite_finder/__init__.py'
       - 'run_app.py'
       - 'setup.py'
