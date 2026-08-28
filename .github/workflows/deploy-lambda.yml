@@ -26,9 +26,17 @@ jobs:
         run: |
           pip install --upgrade awscli
 
+      - name: Install dependencies not covered by the AWSSDKPandas layer
+        run: |
+          # The function relies on the AWS-managed AWSSDKPandas-Python311
+          # layer for pandas/numpy/requests/boto3 — this only needs to add
+          # what that layer doesn't already provide.
+          pip install --target ./package itsdangerous
+
       - name: Zip Lambda function
         run: |
-          zip -r function.zip campsite_finder
+          cp -r campsite_finder ./package/
+          cd package && zip -r ../function.zip . && cd ..
 
       - name: Deploy to AWS Lambda with retries
         env:
