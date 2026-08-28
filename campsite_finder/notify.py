@@ -146,7 +146,9 @@ def send_email(subject, html_body, recipients, sender="pwilliams272@gmail.com"):
         print(f"[LOCAL MODE] Email would be sent to: {recipients}\nSaved HTML to: {fname}")
     else:
         import boto3
-        client = boto3.client("ses")
+        # Explicit region: SES's client construction requires one (unlike
+        # S3's), and the EC2 host's environment doesn't set a default.
+        client = boto3.client("ses", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"))
         message = {"Subject": {"Data": subject}, "Body": {"Html": {"Data": html_body}}}
         client.send_email(
             Source=sender,
