@@ -30,6 +30,46 @@ def normalize_config_value(value, existing=None):
         'owner_username': existing.get('owner_username', value.get('owner_username')),
     }
 
+def group_campgrounds_by_park(conf):
+    """
+    Groups a config's campgrounds by which national park they belong to, for
+    display. Configs don't store this association directly (campgrounds is a
+    flat {name: id} dict), so for the common single-park case it's trivial;
+    a multi-park config needs a live RIDB lookup per park to determine
+    membership (same call the campground picker itself uses).
+
+    Returns:
+        list[tuple[str or None, list[tuple[str, str]]]]: (park_name, [(campground_name, campground_id), ...]),
+        park_name is None for campgrounds that couldn't be matched to any
+        selected park (e.g. a lookup failure) or when no park is on file.
+    """
+    parks = conf.get('national_parks') or {}
+    campgrounds = list((conf.get('campgrounds') or {}).items())
+    if not campgrounds:
+        return []
+    if len(parks) <= 1:
+        label = next(iter(parks), None)
+        return [(label, campgrounds)]
+
+    from campsite_finder.recreationgov import get_park_campgrounds_from_id
+    groups = []
+    assigned_ids = set()
+    for park_name, park_id in parks.items():
+        try:
+            df = get_park_campgrounds_from_id(park_id)
+            park_campground_ids = set(df['FacilityID'].astype(str))
+        except Exception:
+            park_campground_ids = set()
+        matched = [(name, cg_id) for name, cg_id in campgrounds if cg_id in park_campground_ids]
+        if matched:
+            groups.append((park_name, matched))
+            assigned_ids.update(cg_id for _, cg_id in matched)
+
+    leftover = [(name, cg_id) for name, cg_id in campgrounds if cg_id not in assigned_ids]
+    if leftover:
+        groups.append((None, leftover))
+    return groups
+
 def read_config(key=None):
     """
     Load the config and optionally return just a specific key.

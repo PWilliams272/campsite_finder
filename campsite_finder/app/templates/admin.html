@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ page_title }} · Campsite Finder{% endblock %}
 
-{% macro config_card(uuid, conf) %}
+{% macro config_card(uuid, conf, campground_groups) %}
 <div class="card config-card">
     <div class="config-card-head">
         <label class="switch">
@@ -18,16 +18,38 @@
         <dd><code>{{ uuid }}</code></dd>
         <dt>National Parks</dt>
         <dd>
-            {% if conf.national_parks %}{{ conf.national_parks.keys() | join(', ') }}{% else %}<em>None</em>{% endif %}
+            {% if conf.national_parks %}
+            <ul class="meta-list">
+                {% for name in conf.national_parks.keys() %}<li>{{ name }}</li>{% endfor %}
+            </ul>
+            {% else %}<em>None</em>{% endif %}
         </dd>
         <dt>Campgrounds</dt>
         <dd>
-            {% for cg_name, cg_id in conf.campgrounds.items() %}{{ cg_name }} (ID: {{ cg_id }}){% if not loop.last %}, {% endif %}{% endfor %}
+            {% if campground_groups %}
+            <ul class="meta-list">
+                {% for park_name, entries in campground_groups %}
+                    {% if park_name %}
+                    <li class="meta-group-label">{{ park_name }}
+                        <ul class="meta-list">
+                            {% for cg_name, cg_id in entries %}<li>{{ cg_name }} (ID: {{ cg_id }})</li>{% endfor %}
+                        </ul>
+                    </li>
+                    {% else %}
+                        {% for cg_name, cg_id in entries %}<li>{{ cg_name }} (ID: {{ cg_id }})</li>{% endfor %}
+                    {% endif %}
+                {% endfor %}
+            </ul>
+            {% else %}<em>None</em>{% endif %}
         </dd>
         <dt>Dates</dt>
         <dd>{{ conf.start_date }} &rarr; {{ conf.end_date if conf.end_date else '—' }}</dd>
         <dt>Notification Emails</dt>
-        <dd>{{ conf.email_to | join(', ') }}</dd>
+        <dd>
+            <ul class="meta-list">
+                {% for email in conf.email_to %}<li>{{ email }}</li>{% endfor %}
+            </ul>
+        </dd>
         <dt>Partial availability?</dt>
         <dd>{{ 'Yes' if conf.partial else 'No' }}</dd>
         <dt>Tents permitted only?</dt>
@@ -44,7 +66,7 @@
     {% for group in groups %}
     <h3 class="submitter-heading">{{ group.label }}</h3>
     <div class="card-grid">
-        {% for uuid, conf in group.configs.items() %}{{ config_card(uuid, conf) }}{% endfor %}
+        {% for uuid, conf in group.configs.items() %}{{ config_card(uuid, conf, campground_groups[uuid]) }}{% endfor %}
     </div>
     {% endfor %}
     {% else %}
@@ -53,7 +75,7 @@
 {% else %}
     {% if configs %}
     <div class="card-grid">
-        {% for uuid, conf in configs.items() %}{{ config_card(uuid, conf) }}{% endfor %}
+        {% for uuid, conf in configs.items() %}{{ config_card(uuid, conf, campground_groups[uuid]) }}{% endfor %}
     </div>
     {% else %}
     <div class="alert alert-danger">{{ empty_message }}</div>

@@ -341,6 +341,21 @@ main {
 
 .config-meta dt { color: var(--lg-text-3); }
 .config-meta dd { margin: 0; color: var(--lg-text); }
+
+.meta-list {
+  margin: 0;
+  padding-left: 18px;
+}
+.meta-list .meta-list {
+  margin-top: 2px;
+}
+.meta-group-label {
+  font-weight: 600;
+  color: var(--lg-text);
+}
+.meta-group-label .meta-list {
+  font-weight: normal;
+}
 .config-meta code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--fs-xs);

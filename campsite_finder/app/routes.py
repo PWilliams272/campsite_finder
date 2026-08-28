@@ -1,6 +1,6 @@
 from flask import render_template, request, jsonify, abort
 from campsite_finder.recreationgov import national_park_search, get_park_campgrounds_from_id, get_facility_amenities
-from campsite_finder.config_utils import add_config, normalize_config_value
+from campsite_finder.config_utils import add_config, normalize_config_value, group_campgrounds_by_park
 from campsite_finder.access_tokens import generate_access_token, verify_access_token, build_edit_url, build_quick_disable_url
 from . import campsite_bp
 
@@ -106,6 +106,7 @@ def admin():
     from campsite_finder.config_utils import load_config
     configs = load_config()
     edit_tokens = {uuid: generate_access_token(uuid) for uuid in configs}
+    campground_groups = {uuid: group_campgrounds_by_park(conf) for uuid, conf in configs.items()}
 
     # Group by owner_id (the true account identity) rather than the
     # self-typed 'name' field, which isn't guaranteed consistent per person
@@ -130,6 +131,7 @@ def admin():
         'admin.html',
         groups=groups,
         edit_tokens=edit_tokens,
+        campground_groups=campground_groups,
         admin_page=True,
         page_title='All Alerts',
         empty_message='No configurations found.',
@@ -148,10 +150,12 @@ def my_alerts():
     # the full /admin view.
     configs = {k: v for k, v in all_configs.items() if uid and v.get('owner_id') == uid}
     edit_tokens = {uuid: generate_access_token(uuid) for uuid in configs}
+    campground_groups = {uuid: group_campgrounds_by_park(conf) for uuid, conf in configs.items()}
     return render_template(
         'admin.html',
         configs=configs,
         edit_tokens=edit_tokens,
+        campground_groups=campground_groups,
         admin_page=False,
         my_alerts_page=True,
         page_title='My Alerts',
