@@ -126,7 +126,7 @@ def format_email(new_full_avail, new_partial_avail, params):
 
     return _wrap_email("New campsites available!", body)
 
-def send_email(subject, html_body, recipients, sender="pwilliams272@gmail.com"):
+def send_email(subject, html_body, recipients, sender="campsitefinder@peterwilliams.dev"):
     """
     Send an email notification with the given subject and HTML body.
 
