@@ -9,6 +9,20 @@ def require_access_token(uuid):
     if not verify_access_token(token, uuid):
         abort(403)
 
+def current_user_id():
+    """The logged-in user's id, forwarded by nginx from the site's login
+    check (X-Auth-User-Id) — empty/absent for anonymous or token-only
+    requests (e.g. the emailed edit link, or local dev with no nginx)."""
+    return request.headers.get('X-Auth-User-Id') or None
+
+def is_admin():
+    return request.headers.get('X-Auth-Role') == 'admin'
+
+@campsite_bp.context_processor
+def inject_auth_state():
+    # Used by base.html to decide which nav links to show.
+    return {'current_user_id': current_user_id(), 'viewer_is_admin': is_admin()}
+
 @campsite_bp.route('/')
 def index():
     return render_template('campsite_finder_index.html', admin_page=False)
@@ -91,7 +105,36 @@ def admin():
     from campsite_finder.config_utils import load_config
     configs = load_config()
     edit_tokens = {uuid: generate_access_token(uuid) for uuid in configs}
-    return render_template('admin.html', configs=configs, edit_tokens=edit_tokens, admin_page=True)
+    return render_template(
+        'admin.html',
+        configs=configs,
+        edit_tokens=edit_tokens,
+        admin_page=True,
+        page_title='All Alerts',
+        empty_message='No configurations found.',
+    )
+
+@campsite_bp.route('/my_alerts')
+def my_alerts():
+    from campsite_finder.config_utils import load_config
+    uid = current_user_id()
+    all_configs = load_config()
+    # owner_id is stamped from this same header at creation time (see
+    # add_config_route) — string-compared since both sides come from the
+    # same X-Auth-User-Id header. Configs created before ownership tracking
+    # existed (owner_id is None) intentionally never show here — only in
+    # the full /admin view.
+    configs = {k: v for k, v in all_configs.items() if uid and v.get('owner_id') == uid}
+    edit_tokens = {uuid: generate_access_token(uuid) for uuid in configs}
+    return render_template(
+        'admin.html',
+        configs=configs,
+        edit_tokens=edit_tokens,
+        admin_page=False,
+        my_alerts_page=True,
+        page_title='My Alerts',
+        empty_message="You haven't submitted any alerts yet.",
+    )
 
 @campsite_bp.route('/toggle_active/<uuid>', methods=['POST'])
 def toggle_active(uuid):

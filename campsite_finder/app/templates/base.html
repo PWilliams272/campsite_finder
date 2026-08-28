@@ -12,8 +12,13 @@
     <div class="site-nav">
         <span class="wordmark">Campsite Finder</span>
         <nav>
-            <a href="{{ url_for('campsite_finder.index') }}" class="{{ 'active' if not admin_page else '' }}">New Alert</a>
+            <a href="{{ url_for('campsite_finder.index') }}" class="{{ 'active' if not admin_page and not my_alerts_page else '' }}">New Alert</a>
+            {% if current_user_id %}
+            <a href="{{ url_for('campsite_finder.my_alerts') }}" class="{{ 'active' if my_alerts_page else '' }}">My Alerts</a>
+            {% endif %}
+            {% if viewer_is_admin %}
             <a href="{{ url_for('campsite_finder.admin') }}" class="{{ 'active' if admin_page else '' }}">Admin</a>
+            {% endif %}
         </nav>
     </div>
     <main>

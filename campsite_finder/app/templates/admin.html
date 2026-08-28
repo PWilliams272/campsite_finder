@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Admin · Campsite Finder{% endblock %}
+{% block title %}{{ page_title }} · Campsite Finder{% endblock %}
 
 {% block content %}
-<h2 class="card-title">Alert configurations</h2>
+<h2 class="card-title">{{ page_title }}</h2>
 
 {% if configs %}
 <div class="card-grid">
@@ -42,7 +42,7 @@
     {% endfor %}
 </div>
 {% else %}
-<div class="alert alert-danger">No configurations found.</div>
+<div class="alert alert-danger">{{ empty_message }}</div>
 {% endif %}
 
 <script src="{{ url_for('campsite_finder.static', filename='js/admin.js') }}"></script>
