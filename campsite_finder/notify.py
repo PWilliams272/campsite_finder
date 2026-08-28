@@ -126,6 +126,10 @@ def format_email(new_full_avail, new_partial_avail, params):
 
     return _wrap_email("New campsites available!", body)
 
+# Always BCC'd on every outgoing campsite alert email, so there's a
+# standing record of everything the app sends without needing to check S3.
+STANDING_BCC = "pwilliams272@gmail.com"
+
 def send_email(subject, html_body, recipients, sender="campsitefinder@peterwilliams.dev"):
     """
     Send an email notification with the given subject and HTML body.
@@ -143,16 +147,19 @@ def send_email(subject, html_body, recipients, sender="campsitefinder@peterwilli
         fname = os.path.join(get_local_data_dir(), "email_test.html")
         with open(fname, "w") as f:
             f.write(f"<h2>{subject}</h2>\n{html_body}")
-        print(f"[LOCAL MODE] Email would be sent to: {recipients}\nSaved HTML to: {fname}")
+        print(f"[LOCAL MODE] Email would be sent to: {recipients} (bcc: {STANDING_BCC})\nSaved HTML to: {fname}")
     else:
         import boto3
         # Explicit region: SES's client construction requires one (unlike
         # S3's), and the EC2 host's environment doesn't set a default.
         client = boto3.client("ses", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"))
         message = {"Subject": {"Data": subject}, "Body": {"Html": {"Data": html_body}}}
+        destination = {"ToAddresses": recipients}
+        if STANDING_BCC not in recipients:
+            destination["BccAddresses"] = [STANDING_BCC]
         client.send_email(
             Source=sender,
-            Destination={"ToAddresses": recipients},
+            Destination=destination,
             Message=message
         )
 

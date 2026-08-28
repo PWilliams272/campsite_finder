@@ -88,6 +88,7 @@ def add_config_route():
     # is always present in production; None locally/without nginx in front.
     value = dict(value)
     value['owner_id'] = request.headers.get('X-Auth-User-Id')
+    value['owner_username'] = request.headers.get('X-Auth-Username')
     config_value = normalize_config_value(value)
     add_config(key, config_value)
     email_to = config_value.get('email_to')
@@ -105,13 +106,34 @@ def admin():
     from campsite_finder.config_utils import load_config
     configs = load_config()
     edit_tokens = {uuid: generate_access_token(uuid) for uuid in configs}
+
+    # Group by owner_id (the true account identity) rather than the
+    # self-typed 'name' field, which isn't guaranteed consistent per person
+    # (e.g. a typo on one submission shouldn't split someone into two
+    # apparent people).
+    by_owner = {}
+    for uuid, conf in configs.items():
+        by_owner.setdefault(conf.get('owner_id'), []).append((uuid, conf))
+
+    def group_label(owner_id, entries):
+        if owner_id is None:
+            return 'No account on file'
+        username = next((c.get('owner_username') for _, c in entries if c.get('owner_username')), None)
+        return username or f'Account #{owner_id}'
+
+    groups = [
+        {'label': group_label(owner_id, entries), 'configs': dict(entries)}
+        for owner_id, entries in sorted(by_owner.items(), key=lambda kv: (kv[0] is None, kv[0] or ''))
+    ]
+
     return render_template(
         'admin.html',
-        configs=configs,
+        groups=groups,
         edit_tokens=edit_tokens,
         admin_page=True,
         page_title='All Alerts',
         empty_message='No configurations found.',
+        grouped=True,
     )
 
 @campsite_bp.route('/my_alerts')
@@ -134,6 +156,7 @@ def my_alerts():
         my_alerts_page=True,
         page_title='My Alerts',
         empty_message="You haven't submitted any alerts yet.",
+        grouped=False,
     )
 
 @campsite_bp.route('/toggle_active/<uuid>', methods=['POST'])

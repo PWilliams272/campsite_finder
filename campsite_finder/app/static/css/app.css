@@ -65,7 +65,18 @@ main {
   display: flex;
   flex-direction: column;
   gap: var(--lg-gap);
+  margin-bottom: calc(var(--lg-gap) * 2);
 }
+
+.submitter-heading {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--lg-text-2);
+  margin: calc(var(--lg-gap) * 1.5) 0 var(--lg-gap) 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--lg-border);
+}
+.submitter-heading:first-of-type { margin-top: 0; }
 
 .card-title {
   font-size: var(--fs-xl);

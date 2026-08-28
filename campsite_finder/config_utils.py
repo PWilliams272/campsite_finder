@@ -23,6 +23,11 @@ def normalize_config_value(value, existing=None):
         # overwritten on edit — edit access itself is governed by the signed
         # per-config token (see app/access_tokens.py), not by owner_id.
         'owner_id': existing.get('owner_id', value.get('owner_id')),
+        # A snapshot of the submitter's username at creation time, purely for
+        # display (grouping the admin page by account). Not live — if the
+        # account is later renamed, past submissions keep the old name, same
+        # as the self-reported 'name' field above.
+        'owner_username': existing.get('owner_username', value.get('owner_username')),
     }
 
 def read_config(key=None):
