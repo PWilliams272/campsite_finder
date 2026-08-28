@@ -5,7 +5,7 @@
 <div class="card config-card">
     <div class="config-card-head">
         <label class="switch">
-            <input type="checkbox" {% if conf.active %}checked{% endif %} onchange="toggleActive('{{ uuid }}', '{{ edit_tokens[uuid] }}', this.checked)">
+            <input type="checkbox" {% if conf.active %}checked{% endif %} onchange="toggleActive(this, '{{ uuid }}', '{{ edit_tokens[uuid] }}', this.checked)">
             <span class="switch-track"></span>
         </label>
         <span class="config-name">{{ conf.name if conf.name else uuid }}</span>

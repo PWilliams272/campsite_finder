@@ -1,10 +1,18 @@
-function toggleActive(uuid, token, checked) {
+function toggleActive(checkboxEl, uuid, token, checked) {
     fetch(`/toggle_active/${uuid}?token=${encodeURIComponent(token)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: checked })
     }).then(r => {
-        if (!r.ok) alert('Failed to update status!');
+        if (!r.ok) {
+            alert('Failed to update status!');
+            checkboxEl.checked = !checked;
+            return;
+        }
+        const badge = checkboxEl.closest('.config-card-head').querySelector('.badge');
+        badge.textContent = checked ? 'Active' : 'Inactive';
+        badge.classList.toggle('badge-active', checked);
+        badge.classList.toggle('badge-inactive', !checked);
     });
 }
 
