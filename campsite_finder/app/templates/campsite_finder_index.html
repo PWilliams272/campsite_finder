@@ -2,8 +2,13 @@
 
 {% block title %}{{ 'Edit Alert' if edit_mode else 'New Alert' }} · Campsite Finder{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+{% endblock %}
+
 {% block content %}
-<div class="card" style="max-width: 640px; margin: 0 auto;">
+<div class="form-map-layout">
+<div class="card">
     <h2 class="card-title">{{ 'Edit Alert' if edit_mode else 'Find a Campsite' }}</h2>
 
     <form id="campsite-form" autocomplete="off">
@@ -80,11 +85,20 @@
     </form>
 </div>
 
+<div class="card map-panel">
+    <div id="campsite-map"></div>
+    <p class="section-note" id="map-note">Search and select a park to see its campgrounds on the map.</p>
+</div>
+</div>
+
 <script>
     const API_ENDPOINTS = {
         parks: "{{ url_for('campsite_finder.api_parks') }}",
         campgrounds: "{{ url_for('campsite_finder.api_campgrounds') }}",
-        addConfig: "{{ url_for('campsite_finder.add_config_route') }}"
+        addConfig: "{{ url_for('campsite_finder.add_config_route') }}",
+        amenitiesTemplate: "{{ url_for('campsite_finder.api_campground_amenities', facility_id='__ID__') }}",
+        parkBoundaries: "{{ url_for('campsite_finder.static', filename='data/nps_boundaries.geojson') }}",
+        campgroundsBundle: "{{ url_for('campsite_finder.static', filename='data/campgrounds.json') }}"
     };
     const EDIT_MODE = {{ 'true' if edit_mode else 'false' }};
     {% if edit_mode %}
@@ -97,5 +111,7 @@
 <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker@2.0.11/dist/litepicker.css"/>
 <script src="https://cdn.jsdelivr.net/npm/litepicker@2.0.11/dist/litepicker.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="{{ url_for('campsite_finder.static', filename='js/map.js') }}"></script>
 <script src="{{ url_for('campsite_finder.static', filename='js/config_form.js') }}"></script>
 {% endblock %}

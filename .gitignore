@@ -4,6 +4,7 @@ __pycache__/
 .env
 *.env
 data/
+!campsite_finder/app/static/data/
 notebooks/
 *.ipynb
 .DS_Store

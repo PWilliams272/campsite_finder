@@ -6,10 +6,10 @@ const campgroundSection = document.getElementById('campgrounds-section');
 const campgroundDropdownBtn = document.getElementById('campground-dropdown-btn');
 const campgroundDropdown = document.getElementById('campground-dropdown');
 
-let selectedParks = {}; // {parkId: parkName}
+let selectedParks = {}; // {parkName: parkName} — NPS unit name is both key and id now (offline search, no RIDB RecAreaID needed)
 let selectedCampgrounds = {}; // {cgId: cgName}
 let parkResultsCache = [];
-let campgroundResultsCache = {}; // {parkId: [{id, name, ...}, ...]}
+let campgroundResultsCache = []; // [{id, name, lat, lon, phone, reservationUrl}, ...] — flat, derived via point-in-polygon
 
 function pill(label, onRemove) {
     const el = document.createElement('span');
@@ -27,28 +27,27 @@ function pill(label, onRemove) {
     return el;
 }
 
-// --- Park search with live fetch + fuzzy sort ---
-let parkSearchTimeout = null;
+// --- Park search: instant client-side search over the bundled 442 NPS
+// unit names (nps_boundaries.geojson) — no per-keystroke network call.
+// RIDB's recareas search only matches whole words ("sequo" returns nothing,
+// "sequoia" returns 14), so a live API call can never be truly responsive
+// to a partial word; searching the local bundle is both faster and correct.
+let allParkNames = [];
+CampsiteMap.getParkNames().then(names => { allParkNames = names; });
+
 parkSearch.addEventListener('input', function () {
     const query = parkSearch.value.trim();
-    if (parkSearchTimeout) clearTimeout(parkSearchTimeout);
     if (query.length === 0) {
         parkDropdown.hidden = true;
         parkResultsCache = [];
         return;
     }
-    parkSearchTimeout = setTimeout(() => {
-        fetch(`${API_ENDPOINTS.parks}?q=${encodeURIComponent(query)}`)
-            .then(r => { if (!r.ok) throw new Error('Failed to fetch parks'); return r.json(); })
-            .then(data => {
-                parkResultsCache = data.slice().sort((a, b) => fuzzyScore(b, query) - fuzzyScore(a, query));
-                renderParkDropdown();
-            })
-            .catch(() => {
-                parkDropdown.innerHTML = '<div class="combo-empty">Error loading parks.</div>';
-                parkDropdown.hidden = false;
-            });
-    }, 150);
+    const ql = query.toLowerCase();
+    parkResultsCache = allParkNames
+        .filter(name => name.toLowerCase().includes(ql))
+        .sort((a, b) => fuzzyScore(b, query) - fuzzyScore(a, query))
+        .slice(0, 25);
+    renderParkDropdown();
 });
 parkSearch.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
 parkSearch.addEventListener('focus', () => { if (parkResultsCache.length > 0) renderParkDropdown(); });
@@ -56,16 +55,16 @@ document.addEventListener('click', e => {
     if (!parkSearch.contains(e.target) && !parkDropdown.contains(e.target)) parkDropdown.hidden = true;
 });
 
-function fuzzyScore(park, q) {
+function fuzzyScore(name, q) {
     if (!q) return 0;
-    const name = park.name.toLowerCase();
+    const nameLower = name.toLowerCase();
     const ql = q.toLowerCase();
-    if (name === ql) return 1000;
-    if (name.startsWith(ql)) return 900;
-    if (name.includes(ql)) return 800;
+    if (nameLower === ql) return 1000;
+    if (nameLower.startsWith(ql)) return 900;
+    if (nameLower.includes(ql)) return 800;
     let score = 0, qi = 0;
-    for (let ni = 0; ni < name.length && qi < ql.length; ++ni) {
-        if (name[ni] === ql[qi]) { score += 10; qi++; }
+    for (let ni = 0; ni < nameLower.length && qi < ql.length; ++ni) {
+        if (nameLower[ni] === ql[qi]) { score += 10; qi++; }
     }
     return score;
 }
@@ -73,7 +72,7 @@ function fuzzyScore(park, q) {
 function renderParkDropdown() {
     parkDropdown.innerHTML = '';
     if (parkResultsCache.length === 0) { parkDropdown.hidden = true; return; }
-    parkResultsCache.forEach(park => {
+    parkResultsCache.forEach(parkName => {
         const item = document.createElement('div');
         item.className = 'combo-option';
         const label = document.createElement('label');
@@ -84,85 +83,100 @@ function renderParkDropdown() {
         label.style.cursor = 'pointer';
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.checked = !!selectedParks[park.id];
+        checkbox.checked = !!selectedParks[parkName];
         checkbox.addEventListener('change', function (e) {
             e.stopPropagation();
             if (this.checked) {
-                selectedParks[park.id] = park.name;
+                selectedParks[parkName] = parkName;
             } else {
-                delete selectedParks[park.id];
-                if (campgroundResultsCache[park.id]) {
-                    campgroundResultsCache[park.id].forEach(cg => delete selectedCampgrounds[cg.id]);
-                }
+                delete selectedParks[parkName];
             }
             renderSelectedParks();
-            renderSelectedCampgrounds();
         });
         label.appendChild(checkbox);
-        label.appendChild(document.createTextNode(park.name));
+        label.appendChild(document.createTextNode(parkName));
         item.appendChild(label);
         parkDropdown.appendChild(item);
     });
     parkDropdown.hidden = false;
 }
 
-function renderSelectedParks(fromCampgroundLoad = false) {
+function updateMapCampgrounds() {
+    const selectedIds = new Set(Object.keys(selectedCampgrounds));
+    CampsiteMap.setCampgrounds(campgroundResultsCache, selectedIds, onMapMarkerToggle);
+}
+
+function onMapMarkerToggle(cgId, cgName) {
+    const nowSelected = !selectedCampgrounds[cgId];
+    if (nowSelected) {
+        selectedCampgrounds[cgId] = cgName;
+    } else {
+        delete selectedCampgrounds[cgId];
+    }
+    CampsiteMap.setSelected(cgId, nowSelected);
+    renderSelectedCampgrounds();
+    updateCampgroundBtnText();
+    if (!campgroundDropdown.hidden) renderCampgroundDropdown();
+}
+
+function renderSelectedParks() {
     selectedParksListDiv.innerHTML = '';
-    Object.entries(selectedParks).forEach(([parkId, parkName]) => {
+    CampsiteMap.setParks(Object.values(selectedParks));
+    Object.entries(selectedParks).forEach(([parkName]) => {
         selectedParksListDiv.appendChild(pill(parkName, () => {
-            delete selectedParks[parkId];
-            if (campgroundResultsCache[parkId]) {
-                campgroundResultsCache[parkId].forEach(cg => delete selectedCampgrounds[cg.id]);
-            }
+            delete selectedParks[parkName];
             renderSelectedParks();
-            renderSelectedCampgrounds();
-            updateCampgroundBtnText();
+            refreshCampgroundsForSelectedParks();
         }));
     });
 
     campgroundSection.style.display = '';
     campgroundDropdownBtn.style.display = '';
-    const keys = Object.keys(selectedParks);
-    let hasCampgrounds = keys.some(parkId => (campgroundResultsCache[parkId] || []).length > 0);
-    campgroundDropdownBtn.disabled = keys.length === 0 || !hasCampgrounds;
-    if (keys.length === 0 || !hasCampgrounds) campgroundDropdown.hidden = true;
-
-    if (keys.length > 0 && !fromCampgroundLoad) {
-        fetchCampgroundsForSelectedParks(() => renderSelectedParks(true));
-    }
-    renderSelectedCampgrounds();
+    refreshCampgroundsForSelectedParks();
 }
 
 function renderSelectedCampgrounds() {
     selectedCampgroundsListDiv.innerHTML = '';
     Object.entries(selectedCampgrounds).forEach(([cgId, cgName]) => {
-        selectedCampgroundsListDiv.appendChild(pill(cgName, () => {
+        const el = pill(cgName, () => {
             delete selectedCampgrounds[cgId];
+            CampsiteMap.setSelected(cgId, false);
             renderSelectedCampgrounds();
             updateCampgroundBtnText();
-        }));
+        });
+        el.addEventListener('mouseenter', () => CampsiteMap.highlight(cgId));
+        el.addEventListener('mouseleave', () => CampsiteMap.unhighlight(cgId, true));
+        selectedCampgroundsListDiv.appendChild(el);
     });
 }
 
-function fetchCampgroundsForSelectedParks(prepopulateCallback) {
-    const parkIds = Object.keys(selectedParks);
-    if (parkIds.length === 0) {
-        campgroundResultsCache = {};
-        if (typeof prepopulateCallback === 'function') prepopulateCallback();
+// Derives campgrounds for the currently selected parks entirely offline —
+// point-in-polygon against the bundled park boundaries and campground
+// bundle (CampsiteMap.campgroundsInParks) — no RIDB call.
+function refreshCampgroundsForSelectedParks() {
+    const parkNames = Object.values(selectedParks);
+    if (parkNames.length === 0) {
+        campgroundResultsCache = [];
+        campgroundDropdownBtn.disabled = true;
+        campgroundDropdown.hidden = true;
+        updateMapCampgrounds();
+        renderSelectedCampgrounds();
         return;
     }
-    fetch(`${API_ENDPOINTS.campgrounds}?` + parkIds.map(id => `park_ids[]=${encodeURIComponent(id)}`).join('&'))
-        .then(r => { if (!r.ok) throw new Error('Failed to fetch campgrounds'); return r.json(); })
-        .then(data => {
-            campgroundResultsCache = data;
-            if (typeof prepopulateCallback === 'function') prepopulateCallback();
-            renderSelectedParks(true);
-        })
-        .catch(() => {
-            campgroundDropdown.innerHTML = '<div class="combo-empty">Error loading campgrounds.</div>';
-            campgroundDropdown.hidden = false;
-            if (typeof prepopulateCallback === 'function') prepopulateCallback();
-        });
+    CampsiteMap.campgroundsInParks(parkNames).then(campgrounds => {
+        campgroundResultsCache = campgrounds;
+        // Deliberately does not prune selectedCampgrounds when a park pill
+        // is removed or a campground falls just outside the (~200m
+        // simplified) boundary polygon — an explicit campground selection
+        // is the user's choice and shouldn't silently vanish because of
+        // boundary-matching imprecision.
+        campgroundDropdownBtn.disabled = campgrounds.length === 0;
+        if (campgrounds.length === 0) campgroundDropdown.hidden = true;
+        if (!campgroundDropdown.hidden) renderCampgroundDropdown();
+        updateCampgroundBtnText();
+        renderSelectedCampgrounds();
+        updateMapCampgrounds();
+    });
 }
 
 campgroundDropdownBtn.addEventListener('click', () => {
@@ -175,53 +189,39 @@ document.addEventListener('click', e => {
 
 function renderCampgroundDropdown() {
     campgroundDropdown.innerHTML = '';
-    if (!campgroundResultsCache || Object.keys(campgroundResultsCache).length === 0) {
+    if (!campgroundResultsCache || campgroundResultsCache.length === 0) {
         campgroundDropdown.hidden = true;
         return;
     }
-    Object.keys(selectedParks).forEach(parkId => {
-        const parkName = selectedParks[parkId] || parkId;
-        const header = document.createElement('div');
-        header.className = 'combo-option';
-        header.style.fontWeight = '700';
-        header.style.cursor = 'default';
-        header.textContent = parkName;
-        campgroundDropdown.appendChild(header);
-        const cgs = campgroundResultsCache[parkId] || [];
-        if (cgs.length === 0) {
-            const noItem = document.createElement('div');
-            noItem.className = 'combo-empty';
-            noItem.textContent = 'No campgrounds found';
-            campgroundDropdown.appendChild(noItem);
-        } else {
-            cgs.forEach(cg => {
-                const item = document.createElement('div');
-                item.className = 'combo-option';
-                const label = document.createElement('label');
-                label.style.display = 'flex';
-                label.style.alignItems = 'center';
-                label.style.gap = '8px';
-                label.style.margin = '0';
-                label.style.cursor = 'pointer';
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = !!selectedCampgrounds[String(cg.id)];
-                checkbox.addEventListener('change', function (e) {
-                    e.stopPropagation();
-                    if (this.checked) {
-                        selectedCampgrounds[String(cg.id)] = cg.name;
-                    } else {
-                        delete selectedCampgrounds[String(cg.id)];
-                    }
-                    updateCampgroundBtnText();
-                    renderSelectedCampgrounds();
-                });
-                label.appendChild(checkbox);
-                label.appendChild(document.createTextNode(cg.name));
-                item.appendChild(label);
-                campgroundDropdown.appendChild(item);
-            });
-        }
+    campgroundResultsCache.forEach(cg => {
+        const item = document.createElement('div');
+        item.className = 'combo-option';
+        const label = document.createElement('label');
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.gap = '8px';
+        label.style.margin = '0';
+        label.style.cursor = 'pointer';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = !!selectedCampgrounds[String(cg.id)];
+        checkbox.addEventListener('change', function (e) {
+            e.stopPropagation();
+            if (this.checked) {
+                selectedCampgrounds[String(cg.id)] = cg.name;
+            } else {
+                delete selectedCampgrounds[String(cg.id)];
+            }
+            CampsiteMap.setSelected(String(cg.id), this.checked);
+            updateCampgroundBtnText();
+            renderSelectedCampgrounds();
+        });
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(cg.name));
+        label.addEventListener('mouseenter', () => CampsiteMap.highlight(String(cg.id)));
+        label.addEventListener('mouseleave', () => CampsiteMap.unhighlight(String(cg.id), !!selectedCampgrounds[String(cg.id)]));
+        item.appendChild(label);
+        campgroundDropdown.appendChild(item);
     });
     campgroundDropdown.hidden = false;
     updateCampgroundBtnText();
@@ -392,6 +392,7 @@ document.getElementById('campsite-form').addEventListener('submit', function (e)
 
 // --- Prepopulation (edit mode) ---
 document.addEventListener('DOMContentLoaded', function () {
+    CampsiteMap.init('campsite-map');
     campgroundSection.style.display = '';
     campgroundDropdownBtn.style.display = '';
     campgroundDropdownBtn.disabled = true;
@@ -400,46 +401,19 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!EDIT_MODE || typeof PREPOP_CONFIG === 'undefined') return;
 
     if (PREPOP_CONFIG.national_parks && typeof PREPOP_CONFIG.national_parks === 'object') {
-        fetch(API_ENDPOINTS.parks)
-            .then(r => { if (!r.ok) throw new Error('Failed to fetch parks'); return r.json(); })
-            .then(() => {
-                Object.entries(PREPOP_CONFIG.national_parks).forEach(([parkName, parkId]) => {
-                    selectedParks[parkId] = parkName;
-                });
-                if (PREPOP_CONFIG.campgrounds) {
-                    Object.entries(PREPOP_CONFIG.campgrounds).forEach(([cgName, cgId]) => {
-                        if (!isNaN(Number(cgName)) && typeof cgId === 'string') {
-                            selectedCampgrounds[String(cgName)] = cgId;
-                        } else {
-                            selectedCampgrounds[String(cgId)] = cgName;
-                        }
-                    });
-                    renderSelectedCampgrounds();
-                }
-                renderSelectedParks();
-                setTimeout(() => {
-                    fetchCampgroundsForSelectedParks(() => {
-                        if (PREPOP_CONFIG.campgrounds) {
-                            const nameToId = {};
-                            for (const parkId in campgroundResultsCache) {
-                                (campgroundResultsCache[parkId] || []).forEach(cg => { nameToId[cg.name] = String(cg.id); });
-                            }
-                            const newSelectedCampgrounds = {};
-                            Object.values(PREPOP_CONFIG.campgrounds).forEach((cgName) => {
-                                const realId = nameToId[cgName];
-                                if (realId) newSelectedCampgrounds[realId] = cgName;
-                            });
-                            selectedCampgrounds = newSelectedCampgrounds;
-                            renderSelectedCampgrounds();
-                            renderCampgroundDropdown();
-                        }
-                    });
-                }, 100);
-            })
-            .catch(() => {
-                parkDropdown.innerHTML = '<div class="combo-empty">Error loading parks for prepopulation.</div>';
-                parkDropdown.hidden = false;
+        // Saved configs store {parkName: <old RIDB RecAreaID>} from before the
+        // offline-search switch; only the name matters now (boundary/campground
+        // matching is name-based), so the old id is simply ignored here.
+        Object.keys(PREPOP_CONFIG.national_parks).forEach(parkName => {
+            selectedParks[parkName] = parkName;
+        });
+        if (PREPOP_CONFIG.campgrounds) {
+            Object.entries(PREPOP_CONFIG.campgrounds).forEach(([cgName, cgId]) => {
+                selectedCampgrounds[String(cgId)] = cgName;
             });
+            renderSelectedCampgrounds();
+        }
+        renderSelectedParks();
     }
 
     if (Array.isArray(PREPOP_CONFIG.email_to)) {

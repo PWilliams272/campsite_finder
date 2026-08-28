@@ -46,7 +46,9 @@ def national_park_search(name):
         pd.DataFrame: DataFrame of matching parks.
     """
     headers = {'apikey': API_KEY}
-    params = {'query': name}
+    # limit keeps the response (and search latency) small — the frontend
+    # only ever shows a short dropdown, not the full match set.
+    params = {'query': name, 'limit': 25}
     response = requests.get(BASE_URL + 'recareas', params=params, headers=headers)
     results = pd.DataFrame(response.json()['RECDATA'])
     return results
@@ -66,6 +68,36 @@ def get_park_campgrounds_from_id(park_id):
     df = pd.DataFrame(response.json()['RECDATA'])
     df = df[df['FacilityTypeDescription'] == 'Campground'].reset_index(drop=True)
     return df[['FacilityName', 'FacilityID', 'FacilityTypeDescription', 'Reservable', 'FacilityLatitude', 'FacilityLongitude']]
+
+AMENITY_KEYWORDS = {
+    'toilets': ['flush toilet', 'vault toilet', 'pit toilet', 'restroom'],
+    'potable_water': ['drinking water', 'potable water'],
+    'showers': ['shower'],
+    'dump_station': ['dump station'],
+    'hookups': ['hookup', 'hook-up'],
+}
+
+def get_facility_amenities(campground_id):
+    """
+    Best-effort amenity flags (toilets, potable water, showers, dump station,
+    hookups) for a campground, derived from RIDB's free-text
+    FacilityDescription via keyword matching — RIDB has no structured
+    amenity field at the facility or campsite level.
+
+    Args:
+        campground_id (int or str): Campground facility ID.
+
+    Returns:
+        dict: {amenity_key: bool}, plus 'description_source': bool
+        (whether a description was available to search at all).
+    """
+    headers = {'apikey': API_KEY}
+    response = requests.get(BASE_URL + f'facilities/{campground_id}', headers=headers)
+    data = response.json()
+    description = (data.get('FacilityDescription') or '').lower()
+    flags = {key: any(kw in description for kw in keywords) for key, keywords in AMENITY_KEYWORDS.items()}
+    flags['description_source'] = bool(description)
+    return flags
 
 def get_campground_data(campground_id):
     """

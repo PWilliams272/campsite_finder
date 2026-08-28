@@ -1,6 +1,6 @@
 import os
 from flask import render_template, request, jsonify
-from campsite_finder.recreationgov import national_park_search, get_park_campgrounds_from_id
+from campsite_finder.recreationgov import national_park_search, get_park_campgrounds_from_id, get_facility_amenities
 from campsite_finder.config_utils import add_config, normalize_config_value
 from . import campsite_bp
 
@@ -40,9 +40,21 @@ def api_campgrounds():
         campgrounds = []
         if df is not None and not df.empty:
             for _, row in df.iterrows():
-                campgrounds.append({"id": str(row["FacilityID"]), "name": row["FacilityName"]})
+                campgrounds.append({
+                    "id": str(row["FacilityID"]),
+                    "name": row["FacilityName"],
+                    "lat": row["FacilityLatitude"],
+                    "lon": row["FacilityLongitude"],
+                })
         result[pid] = campgrounds
     return jsonify(result)
+
+@campsite_bp.route('/api/campground_amenities/<facility_id>')
+def api_campground_amenities(facility_id):
+    try:
+        return jsonify(get_facility_amenities(facility_id))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @campsite_bp.route('/add_config', methods=['POST'])
 def add_config_route():
