@@ -19,6 +19,8 @@
             <button class="btn btn-sm btn-danger" onclick="deleteConfig('{{ uuid }}', '{{ edit_tokens[uuid] }}')">Delete</button>
         </div>
         <dl class="config-meta">
+            <dt>Submission ID</dt>
+            <dd><code>{{ uuid }}</code></dd>
             <dt>National Parks</dt>
             <dd>
                 {% if conf.national_parks %}{{ conf.national_parks.keys() | join(', ') }}{% else %}<em>None</em>{% endif %}

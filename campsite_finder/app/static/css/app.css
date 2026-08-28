@@ -330,6 +330,14 @@ main {
 
 .config-meta dt { color: var(--lg-text-3); }
 .config-meta dd { margin: 0; color: var(--lg-text); }
+.config-meta code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--fs-xs);
+  background: var(--lg-gold-soft);
+  padding: 2px 5px;
+  border-radius: var(--lg-radius-xs);
+  user-select: all;
+}
 
 .badge {
   display: inline-flex;
