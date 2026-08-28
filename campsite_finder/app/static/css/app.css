@@ -1,0 +1,380 @@
+/* campsite_finder shell + components, built on tokens.css.
+   Not synced — repo-owned, unlike tokens.css. */
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+
+a { color: var(--lg-gold); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ---------- Shell ---------- */
+
+.site-nav {
+  height: var(--lg-nav-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--lg-pad);
+  border-bottom: 1px solid var(--lg-border);
+  background: var(--lg-surface);
+}
+
+.site-nav .wordmark {
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  color: var(--lg-text);
+}
+
+.site-nav nav {
+  display: flex;
+  gap: 4px;
+}
+
+.site-nav nav a {
+  color: var(--lg-text-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--lg-radius-md);
+}
+
+.site-nav nav a:hover,
+.site-nav nav a.active {
+  color: var(--lg-text);
+  background: var(--lg-active);
+  text-decoration: none;
+}
+
+main {
+  max-width: var(--lg-content-max);
+  margin: 0 auto;
+  padding: var(--lg-pad);
+}
+
+/* ---------- Cards / sections ---------- */
+
+.card {
+  background: var(--lg-card);
+  border: 1px solid var(--lg-border);
+  border-radius: var(--lg-radius-lg);
+  box-shadow: var(--lg-shadow-sm);
+  padding: var(--lg-pad);
+}
+
+.card-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-gap);
+}
+
+.card-title {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  margin: 0 0 var(--lg-gap) 0;
+}
+
+.section-note {
+  color: var(--lg-text-3);
+  font-size: var(--fs-sm);
+  margin: 4px 0 0 0;
+}
+
+/* ---------- Fields ---------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--lg-gap);
+}
+
+.field label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--lg-text-2);
+}
+
+.field input[type="text"]:not(.combo-input),
+.field input[type="email"]:not(.combo-input),
+.field input[type="search"]:not(.combo-input) {
+  background: var(--lg-surface);
+  color: var(--lg-text);
+  border: 1px solid var(--lg-border);
+  border-radius: var(--lg-radius-md);
+  padding: 10px 12px;
+  font-size: var(--fs-base);
+  font-family: inherit;
+}
+
+.field input:focus:not(.combo-input) {
+  outline: none;
+  border-color: var(--lg-gold);
+  box-shadow: 0 0 0 3px var(--lg-gold-soft);
+}
+
+/* ---------- Segmented toggle ---------- */
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--lg-border);
+  border-radius: var(--lg-radius-md);
+  overflow: hidden;
+  background: var(--lg-surface);
+  width: fit-content;
+}
+
+.segmented button {
+  border: 0;
+  border-right: 1px solid var(--lg-border);
+  background: transparent;
+  color: var(--lg-text-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.segmented button:last-child { border-right: 0; }
+.segmented button:hover { color: var(--lg-text); }
+.segmented button[aria-pressed="true"] {
+  background: var(--lg-gold);
+  color: #fff;
+}
+
+/* ---------- Combo select (search + pills) ---------- */
+
+.combo-select { position: relative; }
+
+.combo-control {
+  min-height: 44px;
+  padding: 8px 10px;
+  background: var(--lg-surface);
+  color: var(--lg-text);
+  border: 1px solid var(--lg-border);
+  border-radius: var(--lg-radius-md);
+}
+
+.combo-control:focus-within {
+  border-color: var(--lg-gold);
+  box-shadow: 0 0 0 3px var(--lg-gold-soft);
+}
+
+.combo-input {
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--lg-text);
+  font: inherit;
+  font-size: var(--fs-base);
+  padding: 4px 2px;
+}
+
+.combo-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--lg-surface);
+  border: 1px solid var(--lg-border);
+  border-radius: var(--lg-radius-md);
+  max-height: 240px;
+  overflow: auto;
+  box-shadow: var(--lg-shadow-md);
+}
+
+.combo-panel[hidden] { display: none; }
+
+.combo-option {
+  padding: 10px 12px;
+  font-size: var(--fs-sm);
+  color: var(--lg-text);
+  cursor: pointer;
+}
+
+.combo-option:hover,
+.combo-option.is-active {
+  background: var(--lg-active);
+}
+
+.combo-empty {
+  padding: 10px 12px;
+  font-size: var(--fs-sm);
+  color: var(--lg-text-3);
+}
+
+/* ---------- Pills (selected parks/campgrounds/emails) ---------- */
+
+.pillfield {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--lg-gold-soft);
+  border-radius: 999px;
+  padding: 4px 6px 4px 12px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--lg-gold);
+  white-space: nowrap;
+}
+
+.pill-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pill-remove:hover { background: rgba(0, 0, 0, 0.12); }
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--lg-border);
+  background: var(--lg-surface);
+  color: var(--lg-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: var(--lg-radius-md);
+  cursor: pointer;
+}
+
+.btn:hover { background: var(--lg-active); }
+
+.btn-primary {
+  background: var(--lg-gold);
+  border-color: var(--lg-gold);
+  color: #fff;
+}
+
+.btn-primary:hover { opacity: 0.9; }
+
+.btn-danger {
+  color: var(--lg-danger);
+  border-color: var(--lg-danger);
+}
+
+.btn-danger:hover { background: rgba(184, 56, 46, 0.08); }
+
+.btn-sm { padding: 6px 12px; font-size: var(--fs-xs); }
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+  margin-top: var(--lg-pad);
+}
+
+/* ---------- Alerts / status ---------- */
+
+.alert {
+  padding: 10px 14px;
+  border-radius: var(--lg-radius-md);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.alert-success { background: rgba(46, 139, 87, 0.12); color: var(--lg-success); }
+.alert-danger { background: rgba(184, 56, 46, 0.10); color: var(--lg-danger); }
+
+/* ---------- Admin: config list ---------- */
+
+.config-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.config-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.config-name {
+  flex: 1;
+  font-weight: 700;
+  font-size: var(--fs-md);
+}
+
+.config-meta {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  row-gap: 6px;
+  column-gap: var(--lg-gap);
+  font-size: var(--fs-sm);
+  margin-top: var(--lg-gap);
+  padding-top: var(--lg-gap);
+  border-top: 1px solid var(--lg-border);
+}
+
+.config-meta dt { color: var(--lg-text-3); }
+.config-meta dd { margin: 0; color: var(--lg-text); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.badge-active { background: rgba(46, 139, 87, 0.14); color: var(--lg-success); }
+.badge-inactive { background: var(--lg-active); color: var(--lg-text-3); }
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.switch input { opacity: 0; width: 0; height: 0; }
+
+.switch-track {
+  position: absolute;
+  inset: 0;
+  background: var(--lg-border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.switch-track::before {
+  content: "";
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.switch input:checked + .switch-track { background: var(--lg-success); }
+.switch input:checked + .switch-track::before { transform: translateX(14px); }

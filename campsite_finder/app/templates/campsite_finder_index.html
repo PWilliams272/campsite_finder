@@ -1,94 +1,90 @@
 {% extends "base.html" %}
 
-{% block title %}Campsite Finder Home{% endblock %}
+{% block title %}{{ 'Edit Alert' if edit_mode else 'New Alert' }} · Campsite Finder{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-7 col-md-9">
-            <div class="card shadow">
-                <div class="card-body">
-                    <h2 class="card-title text-center mb-4">{{ 'Edit Configuration' if edit_mode else 'Find a Campsite' }}</h2>
-                    <form id="campsite-form" autocomplete="off">
-                        <!-- Name Input -->
-                        <div class="mb-3">
-                            <label for="user-name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="user-name" name="user_name" placeholder="Your name" autocomplete="off" value="{{ config.name if edit_mode and config.name is defined else '' }}">
-                        </div>
-                        <!-- Park Search Input + Dropdown -->
-                        <div class="mb-3 position-relative">
-                            <label for="park-search" class="form-label">Search National Parks</label>
-                            <input type="text" class="form-control" id="park-search" placeholder="Type to search..." autocomplete="off">
-                            <div id="park-dropdown" class="dropdown-menu show w-100 px-3 py-0"
-                                style="max-height: 260px; overflow-y: auto; display: none; position: absolute; z-index: 10;">
-                            </div>
-                        </div>
-                        <div id="selected-parks-list" class="mb-2"></div>
-                        <!-- Campground: don't show anything unless a park is selected -->
-                        <div id="campgrounds-section" class="mb-3" style="display:none;">
-                            <label class="form-label"><strong>Select Campgrounds</strong></label>
-                            <div class="position-relative">
-                                <button type="button" id="campground-dropdown-btn" class="btn btn-outline-secondary w-100 mb-2 text-start" style="display:none;">
-                                    Select campgrounds...
-                                </button>
-                                <div id="campground-dropdown" class="dropdown-menu show w-100 px-3 py-0"
-                                    style="max-height: 260px; overflow-y: auto; display: none; position: absolute; z-index: 10;">
-                                </div>
-                            </div>
-                        </div>
-                        <div id="selected-campgrounds-list" class="mb-3"></div>
-                        <hr>
-                        <!-- Email Input (one at a time, add to list) -->
-                        <div class="mb-3">
-                            <label for="email-input" class="form-label">Email(s)</label>
-                            <input
-                                type="email"
-                                class="form-control"
-                                id="email-input"
-                                name="emails"
-                                placeholder="Enter an email to be notified of new site availability"
-                                autocomplete="off"
-                                value=""
-                            >
-                            <div class="form-text">Enter an email and press Enter. Add as many as you like.</div>
-                            <div id="email-list" class="mt-2"></div>
-                        </div>
-                        <!-- Date Range Picker -->
-                        <div class="mb-3">
-                            <label for="date-range" class="form-label">Date Range</label>
-                            <input type="text" class="form-control" id="date-range" name="date_range" placeholder="Select date range" readonly
-                                value="{% if edit_mode and config.start_date and config.end_date %}{{ config.start_date }} to {{ config.end_date }}{% endif %}">
-                        </div>
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="allow-partial" name="allow_partial" {% if edit_mode and config.partial %}checked{% endif %}>
-                            <label class="form-check-label" for="allow-partial">Notify of sites available for only part of requested date range</label>
-                        </div>
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="tents-permitted" name="tents_permitted" {% if edit_mode and config.tents_permitted %}checked{% endif %}>
-                            <label class="form-check-label" for="tents-permitted">Only notify of sites where tents are permitted</label>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">{{ 'Update' if edit_mode else 'Submit' }}</button>
-                            {% if edit_mode %}
-                            <button type="button" class="btn btn-danger mt-2" id="deleteBtn">Delete</button>
-                            {% endif %}
-                        </div>
-                        <div id="submit-status" class="mt-3"></div>
-                        <pre id="config-json" class="mt-3 bg-light p-3 rounded" style="font-size: 0.95em; display:none;"></pre>
-                    </form>
+<div class="card" style="max-width: 640px; margin: 0 auto;">
+    <h2 class="card-title">{{ 'Edit Alert' if edit_mode else 'Find a Campsite' }}</h2>
+
+    <form id="campsite-form" autocomplete="off">
+        <div class="field">
+            <label for="user-name">Name</label>
+            <input type="text" id="user-name" name="user_name" placeholder="Your name" autocomplete="off"
+                   value="{{ config.name if edit_mode and config.name is defined else '' }}">
+        </div>
+
+        <div class="field">
+            <label for="park-search">Search National Parks</label>
+            <div class="combo-select" id="park-combo">
+                <div class="combo-control">
+                    <input type="text" id="park-search" class="combo-input" placeholder="Type to search…" autocomplete="off">
                 </div>
+                <div id="park-dropdown" class="combo-panel" hidden></div>
+            </div>
+            <div id="selected-parks-list" class="pillfield"></div>
+        </div>
+
+        <div id="campgrounds-section" class="field" style="display:none;">
+            <label>Select Campgrounds</label>
+            <div class="combo-select" id="campground-combo">
+                <div class="combo-control">
+                    <button type="button" id="campground-dropdown-btn" class="combo-input" style="text-align:left; cursor:pointer; display:none;">
+                        Select campgrounds…
+                    </button>
+                </div>
+                <div id="campground-dropdown" class="combo-panel" hidden></div>
+            </div>
+            <div id="selected-campgrounds-list" class="pillfield"></div>
+        </div>
+
+        <div class="field">
+            <label for="email-input">Email(s)</label>
+            <div class="combo-control">
+                <input type="email" id="email-input" name="emails" class="combo-input"
+                       placeholder="Enter an email and press Enter" autocomplete="off">
+            </div>
+            <p class="section-note">Add as many as you like.</p>
+            <div id="email-list" class="pillfield"></div>
+        </div>
+
+        <div class="field">
+            <label for="date-range">Date Range</label>
+            <input type="text" id="date-range" name="date_range" placeholder="Select date range" readonly
+                   value="{% if edit_mode and config.start_date and config.end_date %}{{ config.start_date }} to {{ config.end_date }}{% endif %}">
+        </div>
+
+        <div class="field">
+            <label>Notify on partial availability</label>
+            <div class="segmented" id="partial-toggle" data-checked="{{ 'true' if edit_mode and config.partial else 'false' }}">
+                <button type="button" data-value="false" aria-pressed="{{ 'false' if edit_mode and config.partial else 'true' }}">Full stay only</button>
+                <button type="button" data-value="true" aria-pressed="{{ 'true' if edit_mode and config.partial else 'false' }}">Include partial</button>
+            </div>
+            <p class="section-note">Include sites available for only part of the requested date range.</p>
+        </div>
+
+        <div class="field">
+            <label>Tent sites</label>
+            <div class="segmented" id="tents-toggle" data-checked="{{ 'true' if edit_mode and config.tents_permitted else 'false' }}">
+                <button type="button" data-value="false" aria-pressed="{{ 'false' if edit_mode and config.tents_permitted else 'true' }}">Any site</button>
+                <button type="button" data-value="true" aria-pressed="{{ 'true' if edit_mode and config.tents_permitted else 'false' }}">Tent-permitted only</button>
             </div>
         </div>
-    </div>
+
+        <div class="btn-row">
+            <button type="submit" class="btn btn-primary">{{ 'Update' if edit_mode else 'Submit' }}</button>
+            {% if edit_mode %}
+            <button type="button" class="btn btn-danger" id="deleteBtn">Delete</button>
+            {% endif %}
+        </div>
+        <div id="submit-status" style="margin-top: var(--lg-gap);"></div>
+    </form>
 </div>
 
-<!-- Inject API endpoint URLs dynamically -->
 <script>
     const API_ENDPOINTS = {
         parks: "{{ url_for('campsite_finder.api_parks') }}",
         campgrounds: "{{ url_for('campsite_finder.api_campgrounds') }}",
         addConfig: "{{ url_for('campsite_finder.add_config_route') }}"
-        // add other endpoints as needed
     };
     const EDIT_MODE = {{ 'true' if edit_mode else 'false' }};
     {% if edit_mode %}
@@ -98,671 +94,8 @@
     const MAIN_PAGE_URL = "{{ url_for('campsite_finder.index') }}";
     {% endif %}
 </script>
-
 <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker@2.0.11/dist/litepicker.css"/>
 <script src="https://cdn.jsdelivr.net/npm/litepicker@2.0.11/dist/litepicker.js"></script>
-<script>
-const parkSearch = document.getElementById('park-search');
-const parkDropdown = document.getElementById('park-dropdown');
-const selectedParksListDiv = document.getElementById('selected-parks-list');
-const selectedCampgroundsListDiv = document.getElementById('selected-campgrounds-list');
-const campgroundSection = document.getElementById('campgrounds-section');
-const campgroundDropdownBtn = document.getElementById('campground-dropdown-btn');
-const campgroundDropdown = document.getElementById('campground-dropdown');
-
-let selectedParks = {};
-let selectedCampgrounds = {}; // {cgId: cgName}
-let parkResultsCache = [];
-let campgroundResultsCache = {}; // {parkId: [{id, name, ...}, ...]}
-let parkDropdownVisible = false;
-let campgroundDropdownVisible = false;
-
-function getSelectedCampgroundsNameIdMap() {
-    let nameIdMap = {};
-    Object.keys(selectedCampgrounds).forEach(cgId => {
-        let foundName = null;
-        for (const parkId in campgroundResultsCache) {
-            const cgObj = (campgroundResultsCache[parkId] || []).find(cg => ""+cg.id === ""+cgId);
-            if (cgObj) {
-                foundName = cgObj.name;
-                break;
-            }
-        }
-        foundName = foundName || selectedCampgrounds[cgId];
-        nameIdMap[foundName] = Number(cgId);
-    });
-    return nameIdMap;
-}
-
-function getSelectedNationalParksNameIdMap() {
-    // selectedParks is a map of parkId: parkName
-    let nameIdMap = {};
-    Object.entries(selectedParks).forEach(([parkId, parkName]) => {
-        nameIdMap[parkName] = parkId;
-    });
-    return nameIdMap;
-}
-
-// --- Park dropdown logic with live fetch and fuzzy sort ---
-let parkSearchTimeout = null;
-parkSearch.addEventListener('input', function() {
-    const query = parkSearch.value.trim();
-    if (parkSearchTimeout) clearTimeout(parkSearchTimeout);
-    if (query.length === 0) {
-        parkDropdown.style.display = 'none';
-        parkDropdownVisible = false;
-        parkResultsCache = [];
-        return;
-    }
-    parkSearchTimeout = setTimeout(() => {
-        fetch(`${API_ENDPOINTS.parks}?q=${encodeURIComponent(query)}`)
-            .then(async r => {
-                if (!r.ok) {
-                    throw new Error('Failed to fetch parks');
-                }
-                return r.json();
-            })
-            .then(data => {
-                const fuzzySorted = data.slice().sort((a, b) => fuzzyScore(b, query) - fuzzyScore(a, query));
-                parkResultsCache = fuzzySorted;
-                renderParkDropdown();
-            })
-            .catch(err => {
-                parkDropdown.innerHTML = '<div class="text-danger px-3 py-2">Error loading parks.</div>';
-                parkDropdown.style.display = 'block';
-                parkDropdownVisible = true;
-            });
-    }, 150);
-});
-parkSearch.addEventListener('keydown', function(e) {
-    if (e.key === "Enter") {
-        e.preventDefault();
-    }
-});
-parkSearch.addEventListener('focus', function() {
-    if (parkResultsCache.length > 0) {
-        renderParkDropdown();
-    }
-});
-document.addEventListener('click', function(e) {
-    if (!parkSearch.contains(e.target) && !parkDropdown.contains(e.target)) {
-        parkDropdown.style.display = 'none';
-        parkDropdownVisible = false;
-    }
-});
-function fuzzyScore(park, q) {
-    if (!q) return 0;
-    const name = park.name.toLowerCase();
-    const ql = q.toLowerCase();
-    if (name === ql) return 1000;
-    if (name.startsWith(ql)) return 900;
-    if (name.includes(ql)) return 800;
-    let score = 0;
-    let qi = 0;
-    for (let ni = 0; ni < name.length && qi < ql.length; ++ni) {
-        if (name[ni] === ql[qi]) {
-            score += 10;
-            qi++;
-        }
-    }
-    return score;
-}
-function renderParkDropdown() {
-    parkDropdown.innerHTML = '';
-    if (parkResultsCache.length === 0) {
-        parkDropdown.style.display = 'none';
-        parkDropdownVisible = false;
-        return;
-    }
-    parkDropdownVisible = true;
-    parkResultsCache.forEach(park => {
-        const item = document.createElement('div');
-        item.className = 'dropdown-item w-100 p-0';
-        const checkDiv = document.createElement('div');
-        checkDiv.className = 'form-check w-100 px-3 py-1';
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.value = park.id;
-        checkbox.id = 'park-' + park.id;
-        checkbox.className = 'form-check-input me-2';
-        checkbox.checked = !!selectedParks[park.id];
-        checkbox.addEventListener('change', function(e) {
-            e.stopPropagation();
-            if (this.checked) {
-                selectedParks[park.id] = park.name;
-            } else {
-                delete selectedParks[park.id];
-                if (campgroundResultsCache[park.id]) {
-                    campgroundResultsCache[park.id].forEach(cg => {
-                        delete selectedCampgrounds[cg.id];
-                    });
-                }
-            }
-            renderSelectedParks();
-            renderSelectedCampgrounds();
-        });
-        const label = document.createElement('label');
-        label.htmlFor = checkbox.id;
-        label.className = 'form-check-label';
-        label.innerText = park.name;
-        checkDiv.appendChild(checkbox);
-        checkDiv.appendChild(label);
-        item.appendChild(checkDiv);
-        parkDropdown.appendChild(item);
-    });
-    parkDropdown.style.display = 'block';
-}
-function renderSelectedParks(fromCampgroundLoad = false) {
-    selectedParksListDiv.innerHTML = '';
-    Object.entries(selectedParks).forEach(([parkId, parkName]) => {
-        const badge = document.createElement('span');
-        badge.className = 'badge rounded-pill bg-primary me-2 mb-1 d-inline-flex align-items-center';
-        badge.innerHTML = `
-            <span>${parkName}</span>
-            <button type="button" class="btn-close btn-close-white btn-sm ms-2" aria-label="Remove" style="font-size:0.7em;" data-park-id="${parkId}"></button>
-        `;
-        selectedParksListDiv.appendChild(badge);
-    });
-    selectedParksListDiv.querySelectorAll('.btn-close').forEach(btn => {
-        btn.onclick = function() {
-            const parkId = this.getAttribute('data-park-id');
-            delete selectedParks[parkId];
-            if (campgroundResultsCache[parkId]) {
-                campgroundResultsCache[parkId].forEach(cg => {
-                    delete selectedCampgrounds[cg.id];
-                });
-            }
-            renderSelectedParks();
-            renderSelectedCampgrounds();
-            updateCampgroundBtnText();
-        };
-    });
-    campgroundSection.style.display = '';
-    campgroundDropdownBtn.style.display = '';
-    const keys = Object.keys(selectedParks);
-    let hasCampgrounds = false;
-    if (keys.length > 0) {
-        for (const parkId of keys) {
-            if (campgroundResultsCache[parkId] && campgroundResultsCache[parkId].length > 0) {
-                hasCampgrounds = true;
-                break;
-            }
-        }
-    }
-    if (keys.length === 0 || !hasCampgrounds) {
-        campgroundDropdownBtn.disabled = true;
-        campgroundDropdownBtn.classList.add('disabled');
-        campgroundDropdownBtn.textContent = 'Select campgrounds...';
-        campgroundDropdown.style.display = 'none';
-    } else {
-        campgroundDropdownBtn.disabled = false;
-        campgroundDropdownBtn.classList.remove('disabled');
-        campgroundDropdownBtn.textContent = 'Select campgrounds...';
-        campgroundDropdown.style.display = 'none';
-    }
-    if (keys.length > 0 && !fromCampgroundLoad) {
-        fetchCampgroundsForSelectedParks(function() {
-            renderSelectedParks(true);
-        });
-    }
-    renderSelectedCampgrounds();
-}
-function renderSelectedCampgrounds() {
-    selectedCampgroundsListDiv.innerHTML = '';
-    Object.entries(selectedCampgrounds).forEach(([cgId, cgName]) => {
-        const badge = document.createElement('span');
-        badge.className = 'badge rounded-pill bg-success me-2 mb-1 d-inline-flex align-items-center';
-        badge.innerHTML = `
-            <span>${cgName}</span>
-            <button type="button" class="btn-close btn-close-white btn-sm ms-2" aria-label="Remove" style="font-size:0.7em;" data-cg-id="${cgId}"></button>
-        `;
-        selectedCampgroundsListDiv.appendChild(badge);
-    });
-    selectedCampgroundsListDiv.querySelectorAll('.btn-close').forEach(btn => {
-        btn.onclick = function() {
-            const cgId = this.getAttribute('data-cg-id');
-            delete selectedCampgrounds[cgId];
-            renderSelectedCampgrounds();
-            updateCampgroundBtnText();
-        };
-    });
-}
-function fetchCampgroundsForSelectedParks(prepopulateCallback) {
-    const parkIds = Object.keys(selectedParks);
-    if (parkIds.length === 0) {
-        campgroundResultsCache = {};
-        if (typeof prepopulateCallback === 'function') prepopulateCallback();
-        return;
-    }
-    fetch(`${API_ENDPOINTS.campgrounds}?` + parkIds.map(id => `park_ids[]=${encodeURIComponent(id)}`).join('&'))
-        .then(async r => {
-            if (!r.ok) {
-                throw new Error('Failed to fetch campgrounds');
-            }
-            return r.json();
-        })
-        .then(data => {
-            campgroundResultsCache = data;
-            if (typeof prepopulateCallback === 'function') prepopulateCallback();
-            // After loading campgrounds, re-render parks to update button state
-            renderSelectedParks(true);
-        })
-        .catch(err => {
-            campgroundDropdown.innerHTML = '<div class="text-danger px-3 py-2">Error loading campgrounds.</div>';
-            campgroundDropdown.style.display = 'block';
-            campgroundDropdownVisible = true;
-            if (typeof prepopulateCallback === 'function') prepopulateCallback();
-        });
-}
-campgroundDropdownBtn.addEventListener('click', function(e) {
-    renderCampgroundDropdown();
-    campgroundDropdownVisible = true;
-    campgroundDropdown.style.display = 'block';
-});
-document.addEventListener('click', function(e) {
-    if (!campgroundDropdownBtn.contains(e.target) && !campgroundDropdown.contains(e.target)) {
-        campgroundDropdown.style.display = 'none';
-        campgroundDropdownVisible = false;
-    }
-});
-function renderCampgroundDropdown() {
-    console.log('DEBUG: renderCampgroundDropdown called');
-    campgroundDropdown.innerHTML = '';
-    if (!campgroundResultsCache || Object.keys(campgroundResultsCache).length === 0) {
-        console.log('DEBUG: No campgroundResultsCache or empty');
-        campgroundDropdown.style.display = 'none';
-        campgroundDropdownVisible = false;
-        return;
-    }
-    campgroundDropdownVisible = true;
-    console.log('DEBUG: selectedCampgrounds', JSON.stringify(selectedCampgrounds));
-    Object.keys(selectedParks).forEach(parkId => {
-        const parkName = selectedParks[parkId] || parkId;
-        const header = document.createElement('div');
-        header.className = 'fw-bold px-3 py-2 text-primary bg-light border-bottom';
-        header.textContent = parkName;
-        campgroundDropdown.appendChild(header);
-        const cgs = campgroundResultsCache[parkId] || [];
-        if (cgs.length === 0) {
-            const noItem = document.createElement('div');
-            noItem.className = 'dropdown-item w-100 px-3 py-1 text-muted';
-            noItem.innerText = "No campgrounds found";
-            campgroundDropdown.appendChild(noItem);
-        } else {
-            cgs.forEach(cg => {
-                const item = document.createElement('div');
-                item.className = 'dropdown-item w-100 p-0';
-                const checkDiv = document.createElement('div');
-                checkDiv.className = 'form-check w-100 px-3 py-1';
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.value = cg.id;
-                checkbox.id = 'campground-' + cg.id;
-                checkbox.className = 'form-check-input me-2';
-                // Debug output for each campground
-                console.log('DEBUG: Rendering campground', cg.id, cg.name, 'Checked:', !!selectedCampgrounds[String(cg.id)]);
-                // Ensure checkbox is checked if this cg.id is in selectedCampgrounds
-                checkbox.checked = !!selectedCampgrounds[String(cg.id)];
-                checkbox.addEventListener('change', function(e) {
-                    e.stopPropagation();
-                    if (this.checked) {
-                        selectedCampgrounds[String(cg.id)] = cg.name;
-                    } else {
-                        delete selectedCampgrounds[String(cg.id)];
-                    }
-                    updateCampgroundBtnText();
-                    renderSelectedCampgrounds();
-                });
-                const label = document.createElement('label');
-                label.htmlFor = checkbox.id;
-                label.className = 'form-check-label';
-                label.innerText = cg.name;
-                checkDiv.appendChild(checkbox);
-                checkDiv.appendChild(label);
-                item.appendChild(checkDiv);
-                campgroundDropdown.appendChild(item);
-            });
-        }
-    });
-    campgroundDropdown.style.display = 'block';
-    updateCampgroundBtnText();
-}
-function updateCampgroundBtnText() {
-    const selected = Object.values(selectedCampgrounds);
-    campgroundDropdownBtn.textContent = selected.length > 0
-        ? selected.join(', ')
-        : 'Select campgrounds...';
-}
-
-// --- Email list input logic ---
-let emailList = [];
-const emailInput = document.getElementById('email-input');
-const emailListDiv = document.getElementById('email-list');
-
-emailInput.addEventListener('keydown', function(e) {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        const val = emailInput.value.trim();
-        if (val && isValidEmail(val) && !emailList.includes(val)) {
-            emailList.push(val);
-            renderEmailList();
-            emailInput.value = '';
-        } else if (!isValidEmail(val) && val) {
-            emailInput.classList.add('is-invalid');
-            setTimeout(() => emailInput.classList.remove('is-invalid'), 1500);
-        }
-    }
-});
-function renderEmailList() {
-    emailListDiv.innerHTML = '';
-    emailList.forEach((email, idx) => {
-        const badge = document.createElement('span');
-        badge.className = 'badge rounded-pill bg-info me-2 mb-1 d-inline-flex align-items-center';
-        badge.innerHTML = `
-            <span>${email}</span>
-            <button type="button" class="btn-close btn-close-white btn-sm ms-2" aria-label="Remove" style="font-size:0.7em;" data-email-idx="${idx}"></button>
-        `;
-        emailListDiv.appendChild(badge);
-    });
-    emailListDiv.querySelectorAll('.btn-close').forEach(btn => {
-        btn.onclick = function() {
-            const idx = parseInt(this.getAttribute('data-email-idx'));
-            emailList.splice(idx, 1);
-            renderEmailList();
-        };
-    });
-}
-function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-// --- Date range picker ---
-let startDate = '';
-let endDate = '';
-const dateRangeInput = document.getElementById('date-range');
-const picker = new Litepicker({
-    element: dateRangeInput,
-    singleMode: false,
-    format: 'YYYY-MM-DD',
-    tooltip: true,
-    numberOfColumns: 2,
-    numberOfMonths: 2,
-    autoApply: true,
-    tooltipText: function(totalDays) {
-        if (!totalDays || totalDays <= 1) return '';
-        const nights = totalDays - 1;
-        return nights === 1 ? '1 night' : `${nights} nights`;
-    },
-    pluralize: function(i, label, opts) {
-        if (label === 'day') {
-            if (i === 1) return '1 night';
-            return i + ' nights';
-        }
-        return i + ' ' + label + (i > 1 ? 's' : '');
-    }
-});
-window.picker = picker; // Ensure global reference for prepopulation
-
-// --- Date range prepopulation: run after picker is created ---
-if (typeof EDIT_MODE !== 'undefined' && EDIT_MODE && typeof PREPOP_CONFIG !== 'undefined') {
-    if (PREPOP_CONFIG.start_date && PREPOP_CONFIG.end_date) {
-        console.log('[DEBUG][picker-init] Prepopulating date range:', PREPOP_CONFIG.start_date, PREPOP_CONFIG.end_date);
-        picker.setDateRange(PREPOP_CONFIG.start_date, PREPOP_CONFIG.end_date);
-        const start = dayjs(PREPOP_CONFIG.start_date);
-        const end = dayjs(PREPOP_CONFIG.end_date);
-        updateDateRangeInput(start, end);
-        console.log('[DEBUG][picker-init] dateRangeInput.value after update:', dateRangeInput.value);
-    }
-}
-function updateDateRangeInput(start, end) {
-    startDate = start ? start.format('YYYY-MM-DD') : '';
-    endDate = end ? end.format('YYYY-MM-DD') : '';
-    if (start && end) {
-        const nights = end.diff(start, 'days');
-        dateRangeInput.value = `${startDate} to ${endDate} (${nights} night${nights === 1 ? '' : 's'})`;
-    } else if (start) {
-        dateRangeInput.value = startDate;
-    } else {
-        dateRangeInput.value = '';
-    }
-}
-picker.on('selected', (start, end) => {
-    updateDateRangeInput(start, end);
-});
-picker.on('hide', () => {
-    const start = picker.getDate();
-    const end = picker.getEndDate();
-    updateDateRangeInput(start, end);
-});
-dateRangeInput.addEventListener('input', () => {
-    if (!dateRangeInput.value) {
-        startDate = '';
-        endDate = '';
-    }
-});
-
-// --- UUID function (RFC4122 v4) ---
-function uuidv4() {
-    // Credit: https://stackoverflow.com/a/2117523/7514849
-    return 'xxxxxxxx_xxxx_4xxx_yxxx_xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-}
-
-// --- Submit & config file output ---
-document.getElementById('campsite-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    // Add email in input box (if valid and not already present) to emailList
-    const currentEmail = emailInput.value.trim();
-    if (currentEmail && isValidEmail(currentEmail) && !emailList.includes(currentEmail)) {
-        emailList.push(currentEmail);
-        renderEmailList();
-        emailInput.value = '';
-    }
-
-    // Validation...
-    if (emailList.length === 0) {
-        document.getElementById('submit-status').innerHTML =
-          `<div class='alert alert-danger'>Please enter at least one valid email.</div>`;
-        emailInput.focus();
-        return;
-    }
-    if (Object.keys(selectedCampgrounds).length === 0) {
-        document.getElementById('submit-status').innerHTML =
-          `<div class='alert alert-danger'>Please select at least one campground.</div>`;
-        return;
-    }
-
-    const userName = document.getElementById('user-name').value.trim();
-    let key, endpoint;
-    if (typeof EDIT_MODE !== 'undefined' && EDIT_MODE && typeof PREPOP_CONFIG !== 'undefined') {
-        key = PREPOP_CONFIG.key || PREPOP_CONFIG.uuid || PREPOP_CONFIG.id || PREPOP_CONFIG._id || PREPOP_CONFIG.ID || PREPOP_CONFIG.Key || PREPOP_CONFIG.UUID;
-        endpoint = UPDATE_ENDPOINT;
-    } else {
-        key = uuidv4();
-        endpoint = API_ENDPOINTS.addConfig;
-    }
-
-    // Build national_parks as {name: id} with id as string
-    const nationalParksDict = {};
-    Object.entries(selectedParks).forEach(([parkId, parkName]) => {
-        nationalParksDict[parkName] = String(parkId);
-    });
-
-    // Build campgrounds as {name: id} with id as string
-    const campgroundsDict = {};
-    Object.keys(selectedCampgrounds).forEach(cgId => {
-        campgroundsDict[selectedCampgrounds[cgId]] = String(cgId);
-    });
-
-    // The value is the dict inside the key
-    const configValue = {
-        name: userName,
-        start_date: startDate,
-        end_date: endDate,
-        national_parks: nationalParksDict,
-        campgrounds: campgroundsDict,
-        email_to: emailList,
-        partial: document.getElementById('allow-partial').checked,
-        tents_permitted: document.getElementById('tents-permitted').checked,
-        active: true // Always set new/updated configs as active
-    };
-    fetch(endpoint, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({key, value: configValue, national_parks: nationalParksDict})
-    })
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById('submit-status').innerHTML = "<div class='alert alert-success'>Submitted!</div>";
-        document.getElementById('config-json').style.display = "block";
-        document.getElementById('config-json').textContent = JSON.stringify({[key]: configValue}, null, 2);
-    })
-    .catch(err => {
-        document.getElementById('submit-status').innerHTML = "<div class='alert alert-danger'>Error saving config.</div>";
-    });
-});
-function getSelectedNationalParks() {
-    // selectedParks is a map of parkId: parkName
-    return Object.values(selectedParks);
-}
-
-// --- Prepopulation on DOMContentLoaded (for edit mode) ---
-document.addEventListener('DOMContentLoaded', function() {
-    campgroundSection.style.display = '';
-    campgroundDropdownBtn.style.display = '';
-    campgroundDropdownBtn.disabled = true;
-    campgroundDropdownBtn.classList.add('disabled');
-    campgroundDropdownBtn.textContent = 'Select campgrounds...';
-
-    if (typeof EDIT_MODE !== 'undefined' && EDIT_MODE && typeof PREPOP_CONFIG !== 'undefined') {
-        // 1. Prepopulate selected parks
-        if (PREPOP_CONFIG.national_parks && typeof PREPOP_CONFIG.national_parks === 'object') {
-            // Fetch all parks so we can map names to IDs
-            fetch(API_ENDPOINTS.parks)
-                .then(async r => {
-                    if (!r.ok) throw new Error('Failed to fetch parks');
-                    return r.json();
-                })
-                .then(allParks => {
-                    // Build id->name and name->id maps
-                    const idToName = {};
-                    const nameToId = {};
-                    allParks.forEach(p => { idToName[p.id] = p.name; nameToId[p.name] = p.id; });
-                    Object.entries(PREPOP_CONFIG.national_parks).forEach(([parkName, parkId]) => {
-                        // Use the ID as key, name as value
-                        selectedParks[parkId] = parkName;
-                    });
-                    // 2. Prepopulate selected campgrounds (before any renderSelectedParks call)
-                    if (PREPOP_CONFIG.campgrounds) {
-                        // Fix: Always use campground ID as key, name as value
-                        Object.entries(PREPOP_CONFIG.campgrounds).forEach(([cgName, cgId]) => {
-                            // If cgId is a number, swap cgName and cgId
-                            if (!isNaN(Number(cgName)) && typeof cgId === 'string') {
-                                // This is actually {id: name}, so swap
-                                selectedCampgrounds[String(cgName)] = cgId;
-                            } else {
-                                // Normal case: {name: id}
-                                selectedCampgrounds[String(cgId)] = cgName;
-                            }
-                        });
-                        renderSelectedCampgrounds(); // Render pills immediately
-                    }
-                    renderSelectedParks(); // Now trigger the rest of the UI logic and API call
-                    // Delay the campground API call so pills render immediately
-                    setTimeout(() => {
-                        fetchCampgroundsForSelectedParks(function() {
-                            if (PREPOP_CONFIG.campgrounds) {
-                                console.log('DEBUG: PREPOP_CONFIG.campgrounds', JSON.stringify(PREPOP_CONFIG.campgrounds));
-                                console.log('DEBUG: campgroundResultsCache', JSON.stringify(campgroundResultsCache));
-                                // Build a reverse lookup: name -> realId from the loaded campgrounds
-                                const nameToId = {};
-                                for (const parkId in campgroundResultsCache) {
-                                    (campgroundResultsCache[parkId] || []).forEach(cg => {
-                                        nameToId[cg.name] = String(cg.id);
-                                    });
-                                }
-                                console.log('DEBUG: nameToId', JSON.stringify(nameToId));
-                                // Rebuild selectedCampgrounds with real IDs
-                                const newSelectedCampgrounds = {};
-                                Object.entries(PREPOP_CONFIG.campgrounds).forEach(([idx, cgName]) => {
-                                    const realId = nameToId[cgName];
-                                    if (realId) {
-                                        newSelectedCampgrounds[realId] = cgName;
-                                    } else {
-                                        console.log('DEBUG: No realId found for cgName', cgName, 'idx', idx);
-                                    }
-                                });
-                                selectedCampgrounds = newSelectedCampgrounds;
-                                console.log('DEBUG: newSelectedCampgrounds', JSON.stringify(newSelectedCampgrounds));
-                                renderSelectedCampgrounds();
-                                renderCampgroundDropdown();
-                            }
-                        });
-                    }, 100);
-                })
-                .catch(() => {
-                    parkDropdown.innerHTML = '<div class="text-danger px-3 py-2">Error loading parks for prepopulation.</div>';
-                    parkDropdown.style.display = 'block';
-                    parkDropdownVisible = true;
-                });
-        }
-        // 3. Prepopulate emails
-        if (Array.isArray(PREPOP_CONFIG.email_to)) {
-            emailList = PREPOP_CONFIG.email_to.slice();
-            renderEmailList();
-        }
-        // 4. Prepopulate date range
-        if (PREPOP_CONFIG.start_date && PREPOP_CONFIG.end_date) {
-            console.log('[DEBUG] Attempting to prepopulate date range:', PREPOP_CONFIG.start_date, PREPOP_CONFIG.end_date);
-            setTimeout(() => {
-                if (window.picker) {
-                    console.log('[DEBUG] window.picker exists, calling setDateRange');
-                    window.picker.setDateRange(PREPOP_CONFIG.start_date, PREPOP_CONFIG.end_date);
-                    // Use dayjs to ensure correct format and update input
-                    const start = dayjs(PREPOP_CONFIG.start_date);
-                    const end = dayjs(PREPOP_CONFIG.end_date);
-                    console.log('[DEBUG] Calling updateDateRangeInput with:', start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
-                    updateDateRangeInput(start, end);
-                    console.log('[DEBUG] dateRangeInput.value after update:', dateRangeInput.value);
-                } else {
-                    console.log('[DEBUG] window.picker does NOT exist at prepopulation time');
-                }
-            }, 200); // Delay to ensure picker is initialized
-        } else {
-            console.log('[DEBUG] PREPOP_CONFIG.start_date or end_date missing:', PREPOP_CONFIG.start_date, PREPOP_CONFIG.end_date);
-        }
-    }
-});
-
-// --- Delete button handler (edit mode) ---
-if (typeof EDIT_MODE !== 'undefined' && EDIT_MODE) {
-    const deleteBtn = document.getElementById('deleteBtn');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', function() {
-            if (!confirm('Are you sure you want to delete this configuration? This action cannot be undone.')) return;
-            fetch(DELETE_ENDPOINT, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'}
-            })
-            .then(response => {
-                if (response.ok) {
-                    document.getElementById('submit-status').innerHTML = "<div class='alert alert-success'>Configuration deleted.</div>";
-                    document.getElementById('campsite-form').querySelectorAll('input,button,textarea,select').forEach(el => el.disabled = true);
-                    // Redirect to main page after a short delay:
-                    setTimeout(() => { window.location.href = MAIN_PAGE_URL; }, 1200);
-                } else {
-                    document.getElementById('submit-status').innerHTML = "<div class='alert alert-danger'>Error deleting configuration.</div>";
-                }
-            })
-            .catch(() => {
-                document.getElementById('submit-status').innerHTML = "<div class='alert alert-danger'>Error deleting configuration.</div>";
-            });
-        });
-    }
-}
-</script>
+<script src="{{ url_for('campsite_finder.static', filename='js/config_form.js') }}"></script>
 {% endblock %}

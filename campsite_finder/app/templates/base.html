@@ -2,20 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Campsite Finder{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('campsite_finder.static', filename='css/tokens.css') }}">
+    <link rel="stylesheet" href="{{ url_for('campsite_finder.static', filename='css/app.css') }}">
+    {% block head %}{% endblock %}
 </head>
 <body>
-    <header>
-        <h1>Campsite Finder</h1>
+    <div class="site-nav">
+        <span class="wordmark">Campsite Finder</span>
         <nav>
-            <a href="{{ url_for('campsite_finder.index') }}">Home</a>
-            <a href="{{ url_for('campsite_finder.admin') }}">Admin</a>
+            <a href="{{ url_for('campsite_finder.index') }}" class="{{ 'active' if not admin_page else '' }}">New Alert</a>
+            <a href="{{ url_for('campsite_finder.admin') }}" class="{{ 'active' if admin_page else '' }}">Admin</a>
         </nav>
-    </header>
+    </div>
     <main>
         {% block content %}{% endblock %}
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -1,108 +1,47 @@
 {% extends "base.html" %}
-{% block title %}Admin - Configurations{% endblock %}
+{% block title %}Admin · Campsite Finder{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <h2>Current Configurations</h2>
-    {% if configs %}
-        <div class="accordion" id="configAccordion">
-            {% for uuid, conf in configs.items() %}
-            <div class="accordion-item mb-2">
-                <h2 class="accordion-header d-flex align-items-center justify-content-between" id="heading-{{ uuid }}">
-                    <div class="d-flex flex-grow-1 align-items-center">
-                        <div class="d-flex align-items-center me-3" style="position: relative;">
-                            <input type="checkbox"
-                                class="form-check-input ms-2"
-                                style="transform: scale(0.6); position: relative; top: -3px;"
-                                {% if conf.active %}checked{% endif %}
-                                onchange="toggleActive('{{ uuid }}', this.checked)"
-                            >
-                            <span style="font-size:0.5em; color: #888;" class="ms-1">Active</span>
-                        </div>
-                        <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ uuid }}" aria-expanded="false" aria-controls="collapse-{{ uuid }}">
-                            {{ conf.name if conf.name else uuid }}
-                        </button>
-                        <a href="{{ url_for('campsite_finder.edit_config', uuid=uuid) }}" class="btn btn-sm btn-outline-secondary ms-3 me-2" onclick="event.stopPropagation();">Edit</a>
-                        <button class="btn btn-sm btn-outline-danger me-2" onclick="deleteConfig('{{ uuid }}'); event.stopPropagation();">Delete</button>
-                    </div>
-                </h2>
-                <div id="collapse-{{ uuid }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ uuid }}" data-bs-parent="#configAccordion">
-                    <div class="accordion-body">
-                        <dl class="row">
-                            <dt class="col-sm-3">National Parks</dt>
-                            <dd class="col-sm-9">
-                                <ul>
-                                {% if conf.national_parks %}
-                                    {% for park in conf.national_parks %}
-                                        <li>{{ park }}</li>
-                                    {% endfor %}
-                                {% else %}
-                                    <li><em>None</em></li>
-                                {% endif %}
-                                </ul>
-                            </dd>
-                            <dt class="col-sm-3">Campgrounds</dt>
-                            <dd class="col-sm-9">
-                                <ul>
-                                    {% for cg_name, cg_id in conf.campgrounds.items() %}
-                                    <li><strong>{{ cg_name }}</strong> (ID: {{ cg_id }})</li>
-                                    {% endfor %}
-                                </ul>
-                            </dd>
-                            <dt class="col-sm-3">Start Date</dt>
-                            <dd class="col-sm-9">{{ conf.start_date }}</dd>
-                            <dt class="col-sm-3">End Date</dt>
-                            <dd class="col-sm-9">{{ conf.end_date if conf.end_date else '—' }}</dd>
-                            <dt class="col-sm-3">Notification Emails</dt>
-                            <dd class="col-sm-9">
-                                <ul>
-                                {% for email in conf.email_to %}
-                                    <li>{{ email }}</li>
-                                {% endfor %}
-                                </ul>
-                            </dd>
-                            <dt class="col-sm-3">Partial?</dt>
-                            <dd class="col-sm-9">{{ conf.partial }}</dd>
-                            <dt class="col-sm-3">Tents Permitted?</dt>
-                            <dd class="col-sm-9">{{ conf.tents_permitted }}</dd>
-                        </dl>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="alert alert-warning">No configurations found.</div>
-    {% endif %}
-</div>
-<script>
-function toggleActive(uuid, checked) {
-    fetch("{{ url_for('campsite_finder.toggle_active', uuid='__UUID__') }}".replace('__UUID__', uuid), {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({active: checked})
-    }).then(r => {
-        if (!r.ok) alert('Failed to update status!');
-    });
-}
+<h2 class="card-title">Alert configurations</h2>
 
-function deleteConfig(uuid) {
-    fetch("{{ url_for('campsite_finder.delete_config', uuid='__UUID__') }}".replace('__UUID__', uuid), {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    }).then(r => {
-        if (r.ok) {
-            location.reload();
-        } else {
-            alert('Failed to delete configuration!');
-        }
-    });
-}
-</script>
+{% if configs %}
+<div class="card-grid">
+    {% for uuid, conf in configs.items() %}
+    <div class="card config-card">
+        <div class="config-card-head">
+            <label class="switch">
+                <input type="checkbox" {% if conf.active %}checked{% endif %} onchange="toggleActive('{{ uuid }}', this.checked)">
+                <span class="switch-track"></span>
+            </label>
+            <span class="config-name">{{ conf.name if conf.name else uuid }}</span>
+            <span class="badge {{ 'badge-active' if conf.active else 'badge-inactive' }}">{{ 'Active' if conf.active else 'Inactive' }}</span>
+            <a href="{{ url_for('campsite_finder.edit_config', uuid=uuid) }}" class="btn btn-sm">Edit</a>
+            <button class="btn btn-sm btn-danger" onclick="deleteConfig('{{ uuid }}')">Delete</button>
+        </div>
+        <dl class="config-meta">
+            <dt>National Parks</dt>
+            <dd>
+                {% if conf.national_parks %}{{ conf.national_parks.keys() | join(', ') }}{% else %}<em>None</em>{% endif %}
+            </dd>
+            <dt>Campgrounds</dt>
+            <dd>
+                {% for cg_name, cg_id in conf.campgrounds.items() %}{{ cg_name }} (ID: {{ cg_id }}){% if not loop.last %}, {% endif %}{% endfor %}
+            </dd>
+            <dt>Dates</dt>
+            <dd>{{ conf.start_date }} &rarr; {{ conf.end_date if conf.end_date else '—' }}</dd>
+            <dt>Notification Emails</dt>
+            <dd>{{ conf.email_to | join(', ') }}</dd>
+            <dt>Partial availability?</dt>
+            <dd>{{ 'Yes' if conf.partial else 'No' }}</dd>
+            <dt>Tents permitted only?</dt>
+            <dd>{{ 'Yes' if conf.tents_permitted else 'No' }}</dd>
+        </dl>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-danger">No configurations found.</div>
+{% endif %}
+
+<script src="{{ url_for('campsite_finder.static', filename='js/admin.js') }}"></script>
 {% endblock %}

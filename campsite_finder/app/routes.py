@@ -1,17 +1,12 @@
 import os
-import json
-from flask import render_template, request, jsonify, redirect, url_for
+from flask import render_template, request, jsonify
 from campsite_finder.recreationgov import national_park_search, get_park_campgrounds_from_id
-from campsite_finder.data_io import load_config, save_config
-from campsite_finder.config_utils import add_config
+from campsite_finder.config_utils import add_config, normalize_config_value
 from . import campsite_bp
-
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
-CONFIG_PATH = os.path.join(DATA_DIR, 'config.json')
 
 @campsite_bp.route('/')
 def index():
-    return render_template('campsite_finder_index.html')
+    return render_template('campsite_finder_index.html', admin_page=False)
 
 @campsite_bp.route('/api/parks')
 def api_parks():
@@ -49,22 +44,6 @@ def api_campgrounds():
         result[pid] = campgrounds
     return jsonify(result)
 
-@campsite_bp.route('/submit', methods=['POST'])
-def submit():
-    data = request.json
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(CONFIG_PATH, "w") as f:
-        json.dump(data, f, indent=2)
-    return jsonify({"status": "success", "data": data})
-
-@campsite_bp.route('/toggle_setup', methods=['POST'])
-def toggle_setup():
-    idx = int(request.form.get('idx'))
-    setups = load_config()
-    setups[idx]['enabled'] = not setups[idx].get('enabled', True)
-    save_config(setups)
-    return redirect(url_for('campsite_finder.admin'))
-
 @campsite_bp.route('/add_config', methods=['POST'])
 def add_config_route():
     from campsite_finder.notify import format_welcome_email, send_email
@@ -73,14 +52,13 @@ def add_config_route():
     value = data.get('value')
     if not key or not value:
         return jsonify({"error": "Missing key or value"}), 400
-    add_config(key, value)
-    # Send welcome email if possible
-    email_to = value.get('email_to')
+    config_value = normalize_config_value(value)
+    add_config(key, config_value)
+    email_to = config_value.get('email_to')
     if email_to:
-        # Build edit_url for this config
         domain = os.environ.get('CAMPSITE_FINDER_DOMAIN', 'localhost')
         edit_url = f"https://{domain}/edit_config/{key}"
-        params = dict(value)
+        params = dict(config_value)
         params['edit_url'] = edit_url
         subject = "Your Campsite Alert is Set Up!"
         html_body = format_welcome_email(params)
@@ -91,14 +69,15 @@ def add_config_route():
 def admin():
     from campsite_finder.config_utils import load_config
     configs = load_config()
-    return render_template('admin.html', configs=configs)
+    return render_template('admin.html', configs=configs, admin_page=True)
 
 @campsite_bp.route('/toggle_active/<uuid>', methods=['POST'])
 def toggle_active(uuid):
     from campsite_finder.config_utils import load_config, save_config
     configs = load_config()
-    is_active = request.json.get('active', True)
-    configs[uuid]['active'] = is_active
+    if uuid not in configs:
+        return "Config not found", 404
+    configs[uuid]['active'] = request.json.get('active', True)
     save_config(configs)
     return '', 204
 
@@ -110,20 +89,8 @@ def edit_config(uuid):
         return "Config not found", 404
     if request.method == 'POST':
         data = request.json
-        # Expecting: {key, value: {...}, national_parks: {...}}
         value = data.get('value', {})
-        config = configs[uuid]
-        config['tents_permitted'] = value.get('tents_permitted', config.get('tents_permitted', False))
-        config['partial'] = value.get('partial', config.get('partial', False))
-        config['national_parks'] = value.get('national_parks', config.get('national_parks', {}))
-        config['campgrounds'] = value.get('campgrounds', config.get('campgrounds', {}))
-        # Ensure all IDs are strings in national_parks and campgrounds
-        config['national_parks'] = {k: str(v) for k, v in config['national_parks'].items()}
-        config['campgrounds'] = {k: str(v) for k, v in config['campgrounds'].items()}
-        config['name'] = value.get('name', config.get('name'))
-        config['start_date'] = value.get('start_date', config.get('start_date'))
-        config['end_date'] = value.get('end_date', config.get('end_date'))
-        config['email_to'] = value.get('email_to', config.get('email_to', []))
+        configs[uuid] = normalize_config_value(value, existing=configs[uuid])
         save_config(configs)
         return jsonify({'status': 'success'}), 200
     # GET: render form
@@ -134,7 +101,8 @@ def edit_config(uuid):
         'campsite_finder_index.html',
         edit_mode=True,
         config=config_for_form,
-        uuid=uuid
+        uuid=uuid,
+        admin_page=False,
     )
 
 @campsite_bp.route('/delete_config/<uuid>', methods=['POST'])

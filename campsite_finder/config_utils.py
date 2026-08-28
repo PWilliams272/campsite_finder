@@ -1,5 +1,26 @@
 from .data_io import load_config, save_config
 
+def normalize_config_value(value, existing=None):
+    """
+    Build a clean, schema-consistent config value from form input, merged
+    onto an existing config (for edits) or defaults (for new configs).
+    All keys lowercase, campground/park IDs coerced to strings.
+    """
+    existing = existing or {}
+    national_parks = value.get('national_parks', existing.get('national_parks', {}))
+    campgrounds = value.get('campgrounds', existing.get('campgrounds', {}))
+    return {
+        'name': value.get('name', existing.get('name')),
+        'start_date': value.get('start_date', existing.get('start_date')),
+        'end_date': value.get('end_date', existing.get('end_date')),
+        'national_parks': {k: str(v) for k, v in national_parks.items()},
+        'campgrounds': {k: str(v) for k, v in campgrounds.items()},
+        'email_to': value.get('email_to', existing.get('email_to', [])),
+        'partial': value.get('partial', existing.get('partial', False)),
+        'tents_permitted': value.get('tents_permitted', existing.get('tents_permitted', False)),
+        'active': value.get('active', existing.get('active', True)),
+    }
+
 def read_config(key=None):
     """
     Load the config and optionally return just a specific key.
