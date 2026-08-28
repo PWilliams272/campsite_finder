@@ -396,11 +396,15 @@ main {
   position: sticky;
   top: calc(var(--lg-nav-h) + var(--lg-gap));
   padding: 0;
-  overflow: hidden;
+  /* Not hidden: a Leaflet tooltip is a child of #campsite-map and can be
+     wider than the panel itself — clipping here would cut it off. The
+     card's rounded corners are clipped on #campsite-map instead, below. */
 }
 
 #campsite-map {
   width: 100%;
+  border-radius: var(--lg-radius-lg);
+  overflow: hidden;
   /* Fill the viewport below the nav bar, minus the panel's own top offset
      and bottom breathing room, so the map uses the full available screen
      height rather than a fixed pixel guess. */
@@ -432,7 +436,11 @@ main {
   font-size: var(--fs-sm);
   padding: 8px 10px;
   white-space: normal;
-  max-width: 600px;
+  /* An explicit width, not just max-width: without it, the box shrink-wraps
+     to the amenities grid's min-content size (its 1fr columns have nothing
+     to fill), which is what kept this narrow regardless of max-width. */
+  width: 480px;
+  max-width: 480px;
 }
 
 .camp-tip b { font-size: var(--fs-base); }
