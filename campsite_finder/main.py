@@ -42,7 +42,7 @@ def process_config_key(key, params):
         previous_availability = load_pickle(f"{key}.pkl")
     except FileNotFoundError:
         previous_availability = pd.DataFrame(columns=current_availability.columns)
-    new_full_avail, new_partial_avail = check_for_changes(current_availability, previous_availability)
+    new_full_avail, new_partial_avail, site_ids = check_for_changes(current_availability, previous_availability)
     save_pickle(current_availability, f"{key}.pkl")
 
     cooldown_hours = get_notification_cooldown_hours()
@@ -63,7 +63,7 @@ def process_config_key(key, params):
         params = dict(params)  # copy to avoid mutating original
         params['edit_url'] = build_edit_url(key)
         params['quick_disable_url'] = build_quick_disable_url(key)
-    body = format_email(new_full_avail, new_partial_avail, params)
+    body = format_email(new_full_avail, new_partial_avail, params, site_ids)
     if body:
         send_email("New Campsites Available!", body, email_to)
         notified_state = record_notifications(notified_state, new_full_avail, new_partial_avail)

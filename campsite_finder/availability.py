@@ -58,15 +58,21 @@ def check_for_changes(data, old_data):
         old_data (pd.DataFrame): Previous DataFrame of availability.
 
     Returns:
-        tuple: (newly_available, newly_partial), both dicts {campground_name: [CampsiteID, ...]}.
+        tuple: (newly_available, newly_partial, site_ids). newly_available/newly_partial are
+        dicts {campground_name: [CampsiteName, ...]}. site_ids is {campground_name: {CampsiteName:
+        CampsiteID}}, letting callers build a reservation link for any site named above —
+        CampsiteID is recreation.gov's own site id (used in its campsite URLs), not something
+        this app assigns.
     """
     newly_available = {}
     newly_partial = {}
+    site_ids = {}
     for campground_name, new in data.groupby('CampgroundName'):
         prev = old_data[old_data['CampgroundName'] == campground_name]
         newly_available[campground_name] = sorted(list(set(new[new['Available'] == 'Available']['CampsiteName']) - set(prev[prev['Available'] == 'Available']['CampsiteName'])))
         newly_partial[campground_name] = sorted(list(set(new[new['Available'] == 'Partial']['CampsiteName']) - set(prev[prev['Available'] == 'Partial']['CampsiteName'])))
-    return newly_available, newly_partial
+        site_ids[campground_name] = dict(zip(new['CampsiteName'], new['CampsiteID']))
+    return newly_available, newly_partial, site_ids
 
 def prune_expired_notifications(notified_state, cooldown_hours):
     """

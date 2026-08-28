@@ -44,7 +44,23 @@ def _wrap_email(title, body_html, footer_html=""):
     """
 
 
-def format_email(new_full_avail, new_partial_avail, params):
+_RESERVATION_URL = "https://www.recreation.gov/camping/campsites/{}"
+
+def _site_links(sites, campground_name, site_ids):
+    """Each site name, linked to its recreation.gov reservation page when a
+    CampsiteID is available for it (see availability.check_for_changes)."""
+    ids = (site_ids or {}).get(campground_name, {})
+    out = []
+    for site in sites:
+        site_id = ids.get(site)
+        if site_id:
+            url = _RESERVATION_URL.format(site_id)
+            out.append(f'<a href="{url}" style="color:{_PRIMARY};">{site}</a>')
+        else:
+            out.append(site)
+    return out
+
+def format_email(new_full_avail, new_partial_avail, params, site_ids=None):
     """
     Create an HTML email summarizing new campsite availabilities.
 
@@ -52,6 +68,8 @@ def format_email(new_full_avail, new_partial_avail, params):
         new_full_avail (dict): {campground_name: [site1, ...]} fully available sites.
         new_partial_avail (dict): {campground_name: [site1, ...]} partially available sites.
         params (dict): Must include 'start_date'.
+        site_ids (dict, optional): {campground_name: {site_name: CampsiteID}}, used to link each
+            site to its recreation.gov reservation page. Sites with no entry render as plain text.
 
     Returns:
         str or None: HTML-formatted email body, or None if there are no new availabilities.
@@ -102,7 +120,7 @@ def format_email(new_full_avail, new_partial_avail, params):
         body += f'<p style="margin:0 0 4px 0;font-weight:700;color:{_TEXT};">Fully available sites</p>'
         for campground_name, sites in new_full_avail.items():
             if sites:
-                site_str = ', '.join(sites)
+                site_str = ', '.join(_site_links(sites, campground_name, site_ids))
                 body += f'<p style="margin:0 0 4px 0;color:{_TEXT_2};"><strong style="color:{_TEXT};">{campground_name}:</strong> {site_str}</p>'
         body += '<div style="height:12px;"></div>'
 
@@ -110,7 +128,7 @@ def format_email(new_full_avail, new_partial_avail, params):
         body += f'<p style="margin:0 0 4px 0;font-weight:700;color:{_TEXT};">Partially available sites (not all requested nights)</p>'
         for campground_name, sites in new_partial_avail.items():
             if sites:
-                site_str = ', '.join(sites)
+                site_str = ', '.join(_site_links(sites, campground_name, site_ids))
                 body += f'<p style="margin:0 0 4px 0;color:{_TEXT_2};"><strong style="color:{_TEXT};">{campground_name}:</strong> {site_str}</p>'
         body += '<div style="height:12px;"></div>'
 
