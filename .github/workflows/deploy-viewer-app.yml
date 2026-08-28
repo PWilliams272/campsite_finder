@@ -1,0 +1,75 @@
+name: Deploy Viewer App to EC2
+
+# The host runs campsites-viewer.service under systemd, with the code checked
+# out at /home/ubuntu/campsites_viewer and a venv at
+# /home/ubuntu/campsites_viewer/.venv (bootstrapped by hand, not by this
+# workflow). This only automates the "push new code" step: rsync, reinstall,
+# restart.
+#
+# Uses easingthemes/ssh-deploy, matching kaya's deploy-viewer-app.yml for the
+# same host pattern.
+#
+# Path-filtered so this and deploy-lambda.yml have independent deploy streams
+# — a Lambda-only change (campsite_finder/main.py, availability.py, notify.py,
+# recreationgov.py, data_io.py) doesn't restart this service, and a web-only
+# change (routes.py, templates, static) doesn't redeploy the Lambda. Modules
+# shared by both (settings.py, config_utils.py, __init__.py) deliberately
+# appear in both workflows' filters.
+#
+# DEPLOYS FROM `prod` ONLY, matching this repo's deploy-lambda.yml.
+on:
+  push:
+    branches:
+      - prod
+    paths:
+      - 'campsite_finder/app/**'
+      - 'campsite_finder/settings.py'
+      - 'campsite_finder/config_utils.py'
+      - 'campsite_finder/data_io.py'
+      - 'campsite_finder/recreationgov.py'
+      - 'campsite_finder/__init__.py'
+      - 'run_app.py'
+      - 'setup.py'
+      - 'requirements.txt'
+      - 'requirements-web.txt'
+      - '.github/workflows/deploy-viewer-app.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: campsites-viewer-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy viewer app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate deploy target
+        run: |
+          if [ -z "${{ secrets.CAMPSITES_VIEWER_HOST }}" ]; then
+            echo "CAMPSITES_VIEWER_HOST secret is not set."
+            exit 1
+          fi
+          # If this step (or the rsync step below) times out with no useful
+          # error, check this first: there's no Elastic IP on this host, so
+          # CAMPSITES_VIEWER_HOST goes stale on any resize/restart that
+          # assigns a new public IP. This exact failure mode broke
+          # aws_flask_site's own deploy on 2026-07-28.
+
+      - name: Rsync code and restart the service
+        uses: easingthemes/ssh-deploy@main
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.CAMPSITES_VIEWER_DEPLOY_KEY }}
+          REMOTE_HOST: ${{ secrets.CAMPSITES_VIEWER_HOST }}
+          REMOTE_USER: ubuntu
+          SOURCE: "campsite_finder setup.py requirements.txt requirements-web.txt run_app.py"
+          TARGET: "/home/ubuntu/campsites_viewer/"
+          SCRIPT_AFTER: |
+            /home/ubuntu/campsites_viewer/.venv/bin/pip install -e "/home/ubuntu/campsites_viewer[web]"
+            sudo systemctl restart campsites-viewer.service

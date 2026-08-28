@@ -21,6 +21,9 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=load_requirements(),
+    extras_require={
+        'web': load_requirements('requirements-web.txt'),
+    },
     entry_points={
         'console_scripts': [
             'campsite_finder = campsite_finder.main:lambda_handler'
