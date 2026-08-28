@@ -103,8 +103,9 @@
     const EDIT_MODE = {{ 'true' if edit_mode else 'false' }};
     {% if edit_mode %}
     const PREPOP_CONFIG = {{ config|tojson|safe }};
-    const UPDATE_ENDPOINT = "{{ url_for('campsite_finder.edit_config', uuid=uuid) }}";
-    const DELETE_ENDPOINT = "{{ url_for('campsite_finder.delete_config', uuid=uuid) }}";
+    const ACCESS_TOKEN = {{ access_token|tojson|safe }};
+    const UPDATE_ENDPOINT = "{{ url_for('campsite_finder.edit_config', uuid=uuid) }}?token=" + encodeURIComponent(ACCESS_TOKEN);
+    const DELETE_ENDPOINT = "{{ url_for('campsite_finder.delete_config', uuid=uuid) }}?token=" + encodeURIComponent(ACCESS_TOKEN);
     const MAIN_PAGE_URL = "{{ url_for('campsite_finder.index') }}";
     {% endif %}
 </script>

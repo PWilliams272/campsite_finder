@@ -1,12 +1,30 @@
 import logging
+from datetime import date
 import pandas as pd
-from .data_io import load_config, load_pickle, save_pickle
+from .data_io import load_config, save_config, load_pickle, save_pickle
 from .availability import check_available, check_for_changes, prune_expired_notifications, apply_cooldown, record_notifications
 from .notify import format_email, send_email
 from .settings import get_notification_cooldown_hours
-import os
+from .access_tokens import build_edit_url, build_quick_disable_url
 
 logger = logging.getLogger(__name__)
+
+def disable_expired_configs(config):
+    """
+    Auto-disables any active config whose end_date has passed, so a stale
+    alert doesn't keep checking (and doesn't keep counting toward RIDB rate
+    limits) indefinitely after the trip it was for is over.
+
+    Returns True if any config was changed (caller should save).
+    """
+    today = date.today().isoformat()
+    changed = False
+    for params in config.values():
+        end_date = params.get('end_date')
+        if params.get('active', False) and end_date and end_date < today:
+            params['active'] = False
+            changed = True
+    return changed
 
 def process_config_key(key, params):
     """
@@ -38,11 +56,13 @@ def process_config_key(key, params):
     # would re-trigger an email every cycle.
     new_full_avail, new_partial_avail = apply_cooldown(new_full_avail, new_partial_avail, notified_state, cooldown_hours)
 
-    # Add edit_url to params for email if not present
+    # Add edit_url to params for email if not present — a token-gated link
+    # that lets the recipient manage this alert with no login (see
+    # app/access_tokens.py).
     if 'edit_url' not in params:
-        # Try to build the edit URL (assume Flask app runs at root)
         params = dict(params)  # copy to avoid mutating original
-        params['edit_url'] = f"https://{os.environ.get('CAMPSITE_FINDER_DOMAIN', 'localhost')}/edit_config/{key}"
+        params['edit_url'] = build_edit_url(key)
+        params['quick_disable_url'] = build_quick_disable_url(key)
     body = format_email(new_full_avail, new_partial_avail, params)
     if body:
         send_email("New Campsites Available!", body, email_to)
@@ -61,6 +81,8 @@ def lambda_handler(event, context):
         dict: Status message.
     """
     config = load_config()
+    if disable_expired_configs(config):
+        save_config(config)
     failed_keys = []
     for key, params in config.items():
         try:

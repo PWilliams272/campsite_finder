@@ -1,8 +1,13 @@
-import os
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, abort
 from campsite_finder.recreationgov import national_park_search, get_park_campgrounds_from_id, get_facility_amenities
 from campsite_finder.config_utils import add_config, normalize_config_value
+from campsite_finder.access_tokens import generate_access_token, verify_access_token, build_edit_url, build_quick_disable_url
 from . import campsite_bp
+
+def require_access_token(uuid):
+    token = request.args.get('token')
+    if not verify_access_token(token, uuid):
+        abort(403)
 
 @campsite_bp.route('/')
 def index():
@@ -64,14 +69,18 @@ def add_config_route():
     value = data.get('value')
     if not key or not value:
         return jsonify({"error": "Missing key or value"}), 400
+    # Set by nginx from the site's verified login (auth_request_set /
+    # X-Auth-User-Id) — this route is only reachable while logged in, so this
+    # is always present in production; None locally/without nginx in front.
+    value = dict(value)
+    value['owner_id'] = request.headers.get('X-Auth-User-Id')
     config_value = normalize_config_value(value)
     add_config(key, config_value)
     email_to = config_value.get('email_to')
     if email_to:
-        domain = os.environ.get('CAMPSITE_FINDER_DOMAIN', 'localhost')
-        edit_url = f"https://{domain}/edit_config/{key}"
         params = dict(config_value)
-        params['edit_url'] = edit_url
+        params['edit_url'] = build_edit_url(key)
+        params['quick_disable_url'] = build_quick_disable_url(key)
         subject = "Your Campsite Alert is Set Up!"
         html_body = format_welcome_email(params)
         send_email(subject, html_body, email_to)
@@ -81,11 +90,13 @@ def add_config_route():
 def admin():
     from campsite_finder.config_utils import load_config
     configs = load_config()
-    return render_template('admin.html', configs=configs, admin_page=True)
+    edit_tokens = {uuid: generate_access_token(uuid) for uuid in configs}
+    return render_template('admin.html', configs=configs, edit_tokens=edit_tokens, admin_page=True)
 
 @campsite_bp.route('/toggle_active/<uuid>', methods=['POST'])
 def toggle_active(uuid):
     from campsite_finder.config_utils import load_config, save_config
+    require_access_token(uuid)
     configs = load_config()
     if uuid not in configs:
         return "Config not found", 404
@@ -96,6 +107,7 @@ def toggle_active(uuid):
 @campsite_bp.route('/edit_config/<uuid>', methods=['GET', 'POST'])
 def edit_config(uuid):
     from campsite_finder.config_utils import load_config, save_config
+    require_access_token(uuid)
     configs = load_config()
     if uuid not in configs:
         return "Config not found", 404
@@ -114,12 +126,28 @@ def edit_config(uuid):
         edit_mode=True,
         config=config_for_form,
         uuid=uuid,
+        access_token=request.args.get('token'),
         admin_page=False,
     )
+
+@campsite_bp.route('/quick_disable/<uuid>')
+def quick_disable(uuid):
+    """One-click unsubscribe from the email footer — a plain GET link, since
+    email clients can't fire a POST. Token-gated the same as the other
+    per-config actions; idempotent, so a link opened twice is harmless."""
+    from campsite_finder.config_utils import load_config, save_config
+    require_access_token(uuid)
+    configs = load_config()
+    if uuid not in configs:
+        return "Config not found", 404
+    configs[uuid]['active'] = False
+    save_config(configs)
+    return render_template('quick_disable.html', config=configs[uuid])
 
 @campsite_bp.route('/delete_config/<uuid>', methods=['POST'])
 def delete_config(uuid):
     from campsite_finder.config_utils import load_config, save_config
+    require_access_token(uuid)
     configs = load_config()
     if uuid in configs:
         del configs[uuid]

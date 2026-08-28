@@ -10,13 +10,13 @@
     <div class="card config-card">
         <div class="config-card-head">
             <label class="switch">
-                <input type="checkbox" {% if conf.active %}checked{% endif %} onchange="toggleActive('{{ uuid }}', this.checked)">
+                <input type="checkbox" {% if conf.active %}checked{% endif %} onchange="toggleActive('{{ uuid }}', '{{ edit_tokens[uuid] }}', this.checked)">
                 <span class="switch-track"></span>
             </label>
             <span class="config-name">{{ conf.name if conf.name else uuid }}</span>
             <span class="badge {{ 'badge-active' if conf.active else 'badge-inactive' }}">{{ 'Active' if conf.active else 'Inactive' }}</span>
-            <a href="{{ url_for('campsite_finder.edit_config', uuid=uuid) }}" class="btn btn-sm">Edit</a>
-            <button class="btn btn-sm btn-danger" onclick="deleteConfig('{{ uuid }}')">Delete</button>
+            <a href="{{ url_for('campsite_finder.edit_config', uuid=uuid) }}?token={{ edit_tokens[uuid] }}" class="btn btn-sm">Edit</a>
+            <button class="btn btn-sm btn-danger" onclick="deleteConfig('{{ uuid }}', '{{ edit_tokens[uuid] }}')">Delete</button>
         </div>
         <dl class="config-meta">
             <dt>National Parks</dt>

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Alert Disabled · Campsite Finder{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:480px;margin:0 auto;">
+    <h2 class="card-title">Alert disabled</h2>
+    <p>{{ 'The alert "' + config.name + '"' if config.name else 'This alert' }} has been paused. You won't receive any more availability emails for it.</p>
+    <p class="section-note">Changed your mind? You can re-enable or edit it any time from the link in your original setup email.</p>
+</div>
+{% endblock %}

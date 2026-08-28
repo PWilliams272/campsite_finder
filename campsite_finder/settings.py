@@ -9,6 +9,18 @@ def get_local_data_dir():
 def get_s3_bucket():
     return os.environ.get('CAMPSITE_FINDER_S3_BUCKET', 'campsite-finder-data')
 
+def get_secret_key():
+    """
+    Signing key for per-config access tokens (app/access_tokens.py) and the
+    Flask app's own SECRET_KEY. Required — no silent default, since a
+    predictable key would make the "edit this alert with no login" links
+    forgeable.
+    """
+    key = os.environ.get('CAMPSITE_FINDER_SECRET_KEY')
+    if not key:
+        raise ValueError("CAMPSITE_FINDER_SECRET_KEY environment variable must be set")
+    return key
+
 def get_notification_cooldown_hours():
     """
     Minimum hours before the same site can trigger a repeat "newly available"

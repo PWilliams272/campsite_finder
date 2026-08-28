@@ -1,5 +1,5 @@
-function toggleActive(uuid, checked) {
-    fetch(`/toggle_active/${uuid}`, {
+function toggleActive(uuid, token, checked) {
+    fetch(`/toggle_active/${uuid}?token=${encodeURIComponent(token)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: checked })
@@ -8,9 +8,9 @@ function toggleActive(uuid, checked) {
     });
 }
 
-function deleteConfig(uuid) {
+function deleteConfig(uuid, token) {
     if (!confirm('Are you sure you want to delete this configuration? This action cannot be undone.')) return;
-    fetch(`/delete_config/${uuid}`, {
+    fetch(`/delete_config/${uuid}?token=${encodeURIComponent(token)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
     }).then(r => {

@@ -19,6 +19,10 @@ def normalize_config_value(value, existing=None):
         'partial': value.get('partial', existing.get('partial', False)),
         'tents_permitted': value.get('tents_permitted', existing.get('tents_permitted', False)),
         'active': value.get('active', existing.get('active', True)),
+        # Set once at creation from the site's forwarded auth identity, never
+        # overwritten on edit — edit access itself is governed by the signed
+        # per-config token (see app/access_tokens.py), not by owner_id.
+        'owner_id': existing.get('owner_id', value.get('owner_id')),
     }
 
 def read_config(key=None):

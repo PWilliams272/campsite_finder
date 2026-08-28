@@ -1,6 +1,49 @@
 import os
 from .settings import *
 
+# Inline-CSS palette mirrored from app/static/css/tokens.css's light-mode
+# values — email clients don't load stylesheets or support CSS variables,
+# so this is a hand-kept subset, not a generated sync target.
+_BG = "#f6f8f9"
+_CARD = "#ffffff"
+_BORDER = "#cdd6e0"
+_TEXT = "#171d27"
+_TEXT_2 = "#57657a"
+_PRIMARY = "#1976d2"
+_DANGER = "#b8382e"
+_RADIUS = "5px"
+
+
+def _button(url, label, color=_PRIMARY):
+    return (
+        f'<a href="{url}" style="display:inline-block;margin-top:12px;margin-right:8px;'
+        f'padding:10px 18px;background:{color};color:#ffffff;text-decoration:none;'
+        f'border-radius:{_RADIUS};font-weight:600;font-size:14px;">{label}</a>'
+    )
+
+
+def _wrap_email(title, body_html, footer_html=""):
+    """Wraps body content in a table-based card layout, matching the app's
+    look. Table-based since that's what actually renders consistently
+    across email clients."""
+    return f"""
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{_BG};padding:24px 0;">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:{_CARD};border:1px solid {_BORDER};border-radius:{_RADIUS};overflow:hidden;">
+          <tr><td style="padding:20px 24px;border-bottom:1px solid {_BORDER};">
+            <span style="font-size:16px;font-weight:700;color:{_TEXT};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Campsite Finder</span>
+          </td></tr>
+          <tr><td style="padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:{_TEXT};font-size:14px;line-height:1.6;">
+            <p style="margin:0 0 12px 0;font-size:18px;font-weight:700;">{title}</p>
+            {body_html}
+          </td></tr>
+          {f'<tr><td style="padding:16px 24px;border-top:1px solid {_BORDER};font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:{_TEXT_2};font-size:12px;">{footer_html}</td></tr>' if footer_html else ''}
+        </table>
+      </td></tr>
+    </table>
+    """
+
+
 def format_email(new_full_avail, new_partial_avail, params):
     """
     Create an HTML email summarizing new campsite availabilities.
@@ -49,32 +92,39 @@ def format_email(new_full_avail, new_partial_avail, params):
     start_date_str = start_date.strftime("%Y-%m-%d")
     end_date_str = end_date.strftime("%Y-%m-%d")
     if end_date == start_date + timedelta(days=1):
-        email = f"Exciting news!!! There are {n_sites} new campsites available on {start_date_str} in {campground_str}!<br><br>"
+        intro = f"There are {n_sites} new campsites available on {start_date_str} in {campground_str}!"
     else:
-        email = f"Exciting news!!! There are {n_sites} new campsites available from {start_date_str} to {end_date_str} in {campground_str}!<br><br>"
-    
+        intro = f"There are {n_sites} new campsites available from {start_date_str} to {end_date_str} in {campground_str}!"
+
+    body = f'<p style="margin:0 0 16px 0;">{intro}</p>'
+
     if n_full_sites:
-        email += "<b>Fully available sites:</b><br>"
+        body += f'<p style="margin:0 0 4px 0;font-weight:700;color:{_TEXT};">Fully available sites</p>'
         for campground_name, sites in new_full_avail.items():
             if sites:
                 site_str = ', '.join(sites)
-                email += f"{campground_name}: {site_str}<br>"
-        email += "<br>"
+                body += f'<p style="margin:0 0 4px 0;color:{_TEXT_2};"><strong style="color:{_TEXT};">{campground_name}:</strong> {site_str}</p>'
+        body += '<div style="height:12px;"></div>'
 
     if include_partial and n_partial_sites:
-        email += "<b>Partially available sites (not all requested nights):</b><br>"
+        body += f'<p style="margin:0 0 4px 0;font-weight:700;color:{_TEXT};">Partially available sites (not all requested nights)</p>'
         for campground_name, sites in new_partial_avail.items():
             if sites:
                 site_str = ', '.join(sites)
-                email += f"{campground_name}: {site_str}<br>"
-        email += "<br>"
+                body += f'<p style="margin:0 0 4px 0;color:{_TEXT_2};"><strong style="color:{_TEXT};">{campground_name}:</strong> {site_str}</p>'
+        body += '<div style="height:12px;"></div>'
 
-    # Add edit link if available
+    buttons = ""
     edit_url = params.get('edit_url')
     if edit_url:
-        email += f'<a href="{edit_url}" style="display:inline-block;margin-top:10px;padding:8px 16px;background:#007bff;color:#fff;text-decoration:none;border-radius:4px;">Edit or Pause This Alert</a><br>'
+        buttons += _button(edit_url, "Edit or Pause This Alert")
+    quick_disable_url = params.get('quick_disable_url')
+    if quick_disable_url:
+        buttons += _button(quick_disable_url, "Unsubscribe", color=_DANGER)
+    if buttons:
+        body += f'<div>{buttons}</div>'
 
-    return email
+    return _wrap_email("New campsites available!", body)
 
 def send_email(subject, html_body, recipients, sender="pwilliams272@gmail.com"):
     """
@@ -116,11 +166,21 @@ def format_welcome_email(params):
     """
     name = params.get('name', 'Campsite Finder User')
     edit_url = params.get('edit_url')
-    email = f"""
-    <p>Hi {name},</p>
-    <p>Your campsite alert has been successfully processed. We'll notify you as soon as new sites become available that match your criteria.</p>
-    <p>If you ever want to edit, pause, or delete this alert, just use the link below:</p>
-    <a href=\"{edit_url}\" style=\"display:inline-block;margin-top:10px;padding:8px 16px;background:#007bff;color:#fff;text-decoration:none;border-radius:4px;\">Edit or Pause This Alert</a><br>
-    <p>Thank you for using Campsite Finder!</p>
-    """
-    return email
+    quick_disable_url = params.get('quick_disable_url')
+
+    body = (
+        f'<p style="margin:0 0 12px 0;">Hi {name},</p>'
+        f'<p style="margin:0 0 12px 0;">Your campsite alert has been set up. We\'ll email you as soon as new '
+        f'sites become available that match your criteria.</p>'
+        f'<p style="margin:0 0 4px 0;color:{_TEXT_2};">You can edit the dates or campgrounds, or pause this '
+        f'alert, any time — no login needed, just use the link below:</p>'
+    )
+    buttons = ""
+    if edit_url:
+        buttons += _button(edit_url, "View or Edit This Alert")
+    if quick_disable_url:
+        buttons += _button(quick_disable_url, "Unsubscribe", color=_DANGER)
+    if buttons:
+        body += f'<div>{buttons}</div>'
+
+    return _wrap_email("Your campsite alert is set up!", body)
